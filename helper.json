@@ -10,8 +10,8 @@
     "!info",
     "!versus"
   ],
-  "token": "ODE4NjcyOTc4ODMyMzkyMjUy.YEbeoA.9rO2YHA4JcuFZJ8-G3__yNYNLYg",
-  "connectionString": "mongodb://localhost:27017/inhouse",
+  "token": "ODE4NDU1ODAyMzg5OTg3NDE5.YEYUXQ.10DcE0kfuH3t0CjQ7tDrnfdo69M",
+  "connectionString": "mongodb+srv://reinaux:reinaux09@cluster0.b1ikh.gcp.mongodb.net/inhouse?authSource=admin&replicaSet=Cluster0-shard-0&readPreference=primary&appname=MongoDB%20Compass&ssl=true",
   "errColor": 15158332,
   "okColor": 3066993,
   "infoColor": 3447003,
