@@ -8,10 +8,10 @@ function getMenctionById(id) {
 
 async function SetPlayerRoleByRanking(player, top1) {
   const roleHelper = top1 ?
-  helper.roles.find(roleFilter => roleFilter.name == '6 - Top 1')
-  : helper.roles.find(roleFilter => roleFilter.pontos > player.elo || (
-    roleFilter.pontos < player.elo &&
-    roleFilter.name == helper.roles[helper.roles.length - 1].name))
+    helper.roles.find(roleFilter => roleFilter.name == '6 - Top 1')
+    : helper.roles.find(roleFilter => roleFilter.pontos > player.elo || (
+      roleFilter.pontos < player.elo &&
+      roleFilter.name == helper.roles[helper.roles.length - 1].name))
   const roles = await getRoles();
   const role = roles.find(e => e.name == roleHelper.name);
   const member = getMemberById(player.id);
@@ -66,17 +66,24 @@ async function setChannels() {
   }
 }
 
-async function getQueueChannel(){
+async function getQueueChannel() {
   return await bot.guilds.cache.first().channels.cache.find(e => e.name == 'Queue')
 }
 
-async function getTeamOneChannel(){
+async function getTeamOneChannel() {
   return await bot.guilds.cache.first().channels.cache.find(e => e.name == 'Time 1')
 }
 
-async function getTeamTwoChannel(){
+async function getTeamTwoChannel() {
   return await bot.guilds.cache.first().channels.cache.find(e => e.name == 'Time 2')
 }
+
+async function sendAllGeral() {
+  const geralChannel = await bot.guilds.cache.first().channels.cache.find(e => e.name == 'Geral')
+
+  bot.guilds.cache.first().members.cache.map(member => member.voice.setChannel(geralChannel))
+}
+
 
 async function createChannel(name, options) {
   return await bot.guilds.cache.first().channels.create(name, options)
@@ -86,7 +93,7 @@ function getMemberById(id) {
   return bot.guilds.cache.first().members.cache.find(e => e.id == id);
 }
 
-function setEloById(player) {
+function setEloByPlayer(player) {
   const member = getMemberById(player.id);
 
   member.setNickname(`[${player.elo}]${member.user.username}`);
@@ -97,4 +104,4 @@ async function getNicknameByMessage(message) {
   return member && member.nickname ? member.nickname : message.author.username;
 }
 
-module.exports = { getMenctionById, setEloById, getNicknameByMessage, bot, setRoles, setChannels, SetPlayerRoleByRanking, getQueueChannel,getTeamOneChannel,getTeamTwoChannel }
+module.exports = { getMenctionById, setEloByPlayer, getNicknameByMessage, bot, setRoles, setChannels, SetPlayerRoleByRanking, getQueueChannel, getTeamOneChannel, getTeamTwoChannel, sendAllGeral }

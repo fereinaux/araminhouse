@@ -12,9 +12,9 @@ async function playerExists(message) {
 async function handleRegister(message) {
   const existsRegister = await playerExists(message);
   if (!(existsRegister)) {
-    const player = { name: message.author.username, id: message.author.id, elo: 0 }
+    const player = { name: message.author.username, id: message.author.id, elo: 0, punicoes: 0 }
     playerModel.create(player)
-    utilsBot.setEloById(player)
+    utilsBot.setEloByPlayer(player)
     const registerUserEmbed = new MessageEmbed()
       .setDescription(`${utilsBot.getMenctionById(message.author.id)} registrado!`)
       .setColor(helper.okColor)
@@ -123,7 +123,7 @@ async function setRanking(message) {
   const players = await playerModel.find({}, ['id', 'name', 'elo'], { sort: { elo: -1 } })
   let rankDesc = '';
   players.map(async (p, i) => {
-    utilsBot.setEloById(p)
+    utilsBot.setEloByPlayer(p)
     utilsBot.SetPlayerRoleByRanking(p, i == 0).then(rankDesc += `${i + 1}º - [${p.elo}] ${p.name} \n`)
   })
 
@@ -135,4 +135,34 @@ async function setRanking(message) {
   message.channel.send(rankingEmbed)
 }
 
-module.exports = { setRanking, getPlayerById, handleRegister, playerExists, versus, info }
+async function punish(message) {
+  if (message.member.hasPermission("ADMINISTRATOR")) {
+    const arrMsg = message.content.split(' ');
+    if (arrMsg.length > 1) {
+      let pontos = parseInt(arrMsg[2])
+      const id = arrMsg[1].replace('<', '').replace('>', '').replace('@', '').replace('!', '')
+      if (pontos) {
+        const player = await playerModel.findOneAndUpdate({ id: id }, { $inc: { elo: -pontos, punicoes: 1 } }, { new: true })
+        utilsBot.setEloByPlayer(player)
+        const msg = new MessageEmbed()
+          .setDescription(`${utilsBot.getMenctionById(id)} punido em ${pontos} pontos`)
+          .setColor(helper.okColor)
+
+        message.channel.send(msg)
+      }
+    } else {
+      const msg = new MessageEmbed()
+        .setDescription(`Comando incorreto
+      Ex: !punish @membro 5`)
+        .setColor(helper.errColor)
+    }
+  } else {
+    const msg = new MessageEmbed()
+      .setDescription(`${utilsBot.getMenctionById(message.author.id)}, você não permissão para fazer isso`)
+      .setColor(helper.errColor)
+
+    message.channel.send(msg)
+  }
+}
+
+module.exports = { setRanking, getPlayerById, handleRegister, playerExists, versus, info, punish }

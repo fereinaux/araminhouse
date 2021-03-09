@@ -3,7 +3,8 @@ const { mongoose, Schema } = require('../mongo')
 const playerSchema = new Schema({
   name: String,
   id: String,
-  elo: Number
+  elo: Number,
+  punicoes: Number
 });
 
 const playerModel = mongoose.model("players", playerSchema)
