@@ -106,7 +106,7 @@ async function info(message, id) {
       Jogos: ${games.length}
       Vitórias: ${player1Wins}
       Derrotas: ${games.length - player1Wins}
-      Punições: 0
+      Punições: ${player.punicoes}
       Elo: ${player.elo}
       `)
     .setColor(helper.infoColor)
