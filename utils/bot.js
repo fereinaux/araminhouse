@@ -46,6 +46,25 @@ function createRole(role, color) {
 
 }
 
+async function getChannels() {
+  return await bot.guilds.cache.first().channels.cache
+}
+
+async function setChannels() {
+  await bot.guilds.cache.first().roles.fetch({ cache: true })
+  const channels = await getChannels();
+  if (!(channels.find(e => e.name == 'Aram'))) {
+    helper.channels.map(ch => createChannel(ch.name, ch.options))
+  }
+}
+
+function createChannel(name, options) {
+  bot.guilds.cache.first().channels.create({
+    name,
+    options
+  })
+}
+
 function getMemberById(id) {
   return bot.guilds.cache.first().members.cache.find(e => e.id == id);
 }
@@ -61,4 +80,4 @@ async function getNicknameByMessage(message) {
   return member && member.nickname ? member.nickname : message.author.username;
 }
 
-module.exports = { getMenctionById, setEloById, getNicknameByMessage, bot, setRoles, SetPlayerRoleByRanking }
+module.exports = { getMenctionById, setEloById, getNicknameByMessage, bot, setRoles, setChannels, SetPlayerRoleByRanking }
