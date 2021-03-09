@@ -5,21 +5,24 @@
     "!queue",
     "!clearqueue",
     "!ranking",
-    "!win"
+    "!win",
+    "!leave",
+    "!info",
+    "!versus"
   ],
-  "token": "ODE4NDU1ODAyMzg5OTg3NDE5.YEYUXQ.10DcE0kfuH3t0CjQ7tDrnfdo69M",
-  "connectionString": "mongodb+srv://reinaux:reinaux09@cluster0.b1ikh.gcp.mongodb.net/inhouse?authSource=admin&replicaSet=Cluster0-shard-0&readPreference=primary&appname=MongoDB%20Compass&ssl=true",
+  "token": "ODE4NjcyOTc4ODMyMzkyMjUy.YEbeoA.9rO2YHA4JcuFZJ8-G3__yNYNLYg",
+  "connectionString": "mongodb://localhost:27017/inhouse",
   "errColor": 15158332,
   "okColor": 3066993,
   "infoColor": 3447003,
   "roles": [
     {
-      "name": "5 - Bronze",
+      "name": "1 - Bronze",
       "color": "#a76f2a",
       "pontos": 10
     },
     {
-      "name": "4 - Prata",
+      "name": "2 - Prata",
       "color": "#cccbcb",
       "pontos": 20
     },
@@ -29,14 +32,18 @@
       "pontos": 30
     },
     {
-      "name": "2 - Platina",
+      "name": "4 - Platina",
       "color": "#66ca85",
       "pontos": 40
     },
     {
-      "name": "1 - Diamante",
+      "name": "5 - Diamante",
       "color": "#96cee8",
       "pontos": 50
+    },
+    {
+      "name": "6 - Top 1",
+      "color": "#ec1010"
     }
   ],
   "channels": [
@@ -44,6 +51,13 @@
       "name": "Aram",
       "options": {
         "type": "category"
+      }
+    },
+    {
+      "name": "Queue",
+      "options": {
+        "type": "voice",
+        "userLimit": 10
       }
     },
     {

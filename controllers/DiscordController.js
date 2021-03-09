@@ -22,7 +22,8 @@ bot.on('message', async message => {
           .setColor(helper.errColor)
         message.channel.send(notRegisteredEmbed)
       } else {
-        switch (message.content) {
+        const arrMsg = message.content.split(' ')
+        switch (arrMsg[0]) {
           case '!queue':
             await queueController.setQueue(message)
             break;
@@ -37,6 +38,16 @@ bot.on('message', async message => {
             break;
           case '!clearqueue':
             await queueController.ClearQueue(message)
+            break
+          case '!versus':
+            if (arrMsg.length == 3) {
+              await playerController.versus(message, arrMsg[1], arrMsg[2])
+            }
+            break
+          case '!info':
+            if (arrMsg.length == 2) {
+              await playerController.info(message, arrMsg[1])
+            }
             break
           default:
             break;

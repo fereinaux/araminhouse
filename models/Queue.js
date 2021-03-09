@@ -7,6 +7,7 @@ const queueSchema = new Schema({
   players: Array,
   teamOne: Array,
   teamTwo: Array,
+  date: Date
 });
 
 const queueModel = mongoose.model("queues", queueSchema)

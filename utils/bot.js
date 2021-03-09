@@ -3,13 +3,15 @@ const bot = new Discord.Client()
 const helper = require('../helper.json')
 
 function getMenctionById(id) {
-  return bot.guilds.cache.map(g => g.members.cache.find(e => e.id == id))
+  return bot.guilds.cache.first().members.cache.find(e => e.id == id)
 }
 
-async function SetPlayerRoleByRanking(player) {
-  const roleHelper = helper.roles.filter(roleFilter => roleFilter.pontos > player.elo || (
+async function SetPlayerRoleByRanking(player, top1) {
+  const roleHelper = top1 ?
+  helper.roles.find(roleFilter => roleFilter.name == '6 - Top 1')
+  : helper.roles.find(roleFilter => roleFilter.pontos > player.elo || (
     roleFilter.pontos < player.elo &&
-    roleFilter.name == helper.roles[helper.roles.length - 1].name))[0]
+    roleFilter.name == helper.roles[helper.roles.length - 1].name))
   const roles = await getRoles();
   const role = roles.find(e => e.name == roleHelper.name);
   const member = getMemberById(player.id);
@@ -30,7 +32,7 @@ async function getRoles() {
 async function setRoles() {
   await bot.guilds.cache.first().roles.fetch({ cache: true })
   const roles = await getRoles();
-  if (!(roles.find(e => e.name == '1 - Diamante'))) {
+  if (!(roles.find(e => e.name == '5 - Diamante'))) {
     helper.roles.map(role => createRole(role.name, role.color))
   }
 }
@@ -51,18 +53,33 @@ async function getChannels() {
 }
 
 async function setChannels() {
-  await bot.guilds.cache.first().roles.fetch({ cache: true })
+  await bot.guilds.cache.first().channels;
   const channels = await getChannels();
   if (!(channels.find(e => e.name == 'Aram'))) {
-    helper.channels.map(ch => createChannel(ch.name, ch.options))
+    const aramHelper = helper.channels.find(e => e.name == 'Aram')
+    let aramChannel = await createChannel(aramHelper.name, aramHelper.options)
+    helper.channels.filter(e => e.name !== 'Aram')
+      .map(ch => {
+        ch.options.parent = aramChannel
+        createChannel(ch.name, ch.options)
+      })
   }
 }
 
-function createChannel(name, options) {
-  bot.guilds.cache.first().channels.create({
-    name,
-    options
-  })
+async function getQueueChannel(){
+  return await bot.guilds.cache.first().channels.cache.find(e => e.name == 'Queue')
+}
+
+async function getTeamOneChannel(){
+  return await bot.guilds.cache.first().channels.cache.find(e => e.name == 'Time 1')
+}
+
+async function getTeamTwoChannel(){
+  return await bot.guilds.cache.first().channels.cache.find(e => e.name == 'Time 2')
+}
+
+async function createChannel(name, options) {
+  return await bot.guilds.cache.first().channels.create(name, options)
 }
 
 function getMemberById(id) {
@@ -80,4 +97,4 @@ async function getNicknameByMessage(message) {
   return member && member.nickname ? member.nickname : message.author.username;
 }
 
-module.exports = { getMenctionById, setEloById, getNicknameByMessage, bot, setRoles, setChannels, SetPlayerRoleByRanking }
+module.exports = { getMenctionById, setEloById, getNicknameByMessage, bot, setRoles, setChannels, SetPlayerRoleByRanking, getQueueChannel,getTeamOneChannel,getTeamTwoChannel }

@@ -1,6 +1,9 @@
 const queueModel = require('../models/Queue')
 const helper = require('../helper.json')
+const { getQueueChannel, getMenctionById, getTeamOneChannel, getTeamTwoChannel } = require('../utils/bot')
 const { MessageEmbed } = require('discord.js')
+const { setRanking, getPlayerById } = require('./PlayerController')
+const playerModel = require('../models/Player')
 
 async function queueExists() {
   const existsQueue = await queueModel.findOne({ $or: [{ status: 'aberta' }, { status: 'Em andamento' }] })
@@ -57,7 +60,7 @@ async function setQueue(message) {
               break;
           }
 
-          queueModel.create({ status: 'aberta', size: size })
+          queueModel.create({ status: 'aberta', size: size, date: new Date() })
 
           const queueCreated = new MessageEmbed()
             .setTitle(`Queue criada`)
@@ -100,17 +103,27 @@ async function setJoin(message) {
         if (queueJoinExists.players.length == (queueJoinExists.size * 2)) {
           const randomPlayers = queueJoinExists.players.sort(() => Math.random() - 0.5)
 
+          const teamOneChannel = await getTeamOneChannel()
+          const teamTwoChannel = await getTeamTwoChannel()
           const teamOne = randomPlayers.slice(0, queueJoinExists.size)
           const teamTwo = randomPlayers.slice(queueJoinExists.size, queueJoinExists.size * 2)
           await queueModel.updateOne({ status: 'aberta' }, { status: 'Em andamento', teamOne: teamOne, teamTwo: teamTwo });
           const teamsDescription = `
           **Time 1**
           
-          ${teamOne.map(player => getMenctionById(player.id))}
+          ${teamOne.map(player => {
+            const member = getMenctionById(player.id)
+            member.voice.setChannel(teamOneChannel)
+            return member
+          })}
           
           **Time 2**
 
-          ${teamTwo.map(player => getMenctionById(player.id))}
+          ${teamTwo.map(player => {
+            const member = getMenctionById(player.id)
+            member.voice.setChannel(teamTwoChannel)
+            return member
+          })}
           `;
 
           const teamEmbed = new MessageEmbed()
@@ -120,6 +133,8 @@ async function setJoin(message) {
 
           message.channel.send(teamEmbed)
         } else {
+          const queueChannel = await getQueueChannel()
+          message.member.voice.setChannel(queueChannel)
           const playerQueue = new MessageEmbed()
             .setDescription(`**${getMenctionById(message.author.id)} entrou na Queue**
             **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)
@@ -139,7 +154,7 @@ async function setJoin(message) {
 async function ClearQueue(message) {
   const queue = await queueExists();
   if (queue) {
-    await queueModel.updateOne({ status: 'aberta' }, { status: 'Canelada' });
+    await queueModel.updateOne({ $or: [{ status: 'aberta' }, { status: 'Em andamento' }] }, { status: 'Canelada' });
     const msg = new MessageEmbed()
       .setTitle(`Queue cancelada!`)
       .setColor(helper.errColor)
@@ -171,39 +186,39 @@ async function setWin(message) {
           const players1 = queueCreationExists.teamOne;
           const players2 = queueCreationExists.teamTwo;
           time = 1
+          const arrPromises = []
           switch (reasonReaction.emoji.name) {
             case '1⃣':
               time = 1
               players2.map(async p => {
-                const player = await getPlayerById(p.id);
-                await playerModel.updateOne({ id: p.id }, { elo: player.elo - 5 })
+                arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: -5 } }))
               })
               players1.map(async p => {
-                const player = await getPlayerById(p.id);
-                await playerModel.updateOne({ id: p.id }, { elo: player.elo + 10 })
+                arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: 10 } }))
               })
               break;
             case '2⃣':
               time = 2
               players2.map(async p => {
-                const player = await getPlayerById(p.id);
-                await playerModel.updateOne({ id: p.id }, { elo: player.elo + 10 })
+                arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: 10 } }))
               })
               players1.map(async p => {
-                const player = await getPlayerById(p.id);
-                await playerModel.updateOne({ id: p.id }, { elo: player.elo - 5 })
+                arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: -5 } }))
               })
               break;
             default:
               break;
           }
-          queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', winningTeam: time }).then();
 
-          const queueCreated = new MessageEmbed()
-            .setTitle(`Vitória associada ao Time ${time}`)
-            .setColor(helper.okColor)
-          message.channel.send(queueCreated)
-          setRanking(message)
+          Promise.all(arrPromises).then(e => queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', winningTeam: time }).then(result => {
+
+            const queueCreated = new MessageEmbed()
+              .setTitle(`Vitória associada ao Time ${time}`)
+              .setColor(helper.okColor)
+            message.channel.send(queueCreated)
+            setRanking(message)
+          }
+          ))
         })
       })
     })
