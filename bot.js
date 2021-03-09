@@ -1,35 +1,13 @@
 const Discord = require('discord.js')
-const mongoose = require('mongoose')
-mongoose.connect('mongodb+srv://reinaux:reinaux09@cluster0.b1ikh.gcp.mongodb.net/inhouse?authSource=admin&replicaSet=Cluster0-shard-0&readPreference=primary&appname=MongoDB%20Compass&ssl=true', {
-  useNewUrlParser: true
-})
+const { mongoose, Schema } = require('./mongo')
+const playerModel = require('./models/Player')
+const queueModel = require('./models/Queue')
+const bot = new Discord.Client()
+const helper = require('./helper.json')
+
 const errColor = 15158332;
 const okColor = 3066993;
 const infoColor = 3447003;
-const Schema = mongoose.Schema
-
-const playerSchema = new Schema({
-  name: String,
-  id: String,
-  elo: Number
-});
-
-const queueSchema = new Schema({
-  status: String,
-  size: Number,
-  winningTeam: Number,
-  players: Array,
-  teamOne: Array,
-  teamTwo: Array,
-});
-
-const playerModel = mongoose.model("players", playerSchema)
-const queueModel = mongoose.model("queues", queueSchema)
-const bot = new Discord.Client()
-
-const token = 'ODE4NDU1ODAyMzg5OTg3NDE5.YEYUXQ.10DcE0kfuH3t0CjQ7tDrnfdo69M'
-
-const comandos = ['!register', '!join', '!queue', '!ranking', '!win']
 
 async function queueExists() {
   const existsQueue = await queueModel.findOne({ $or: [{ status: 'aberta' }, { status: 'Em andamento' }] })
@@ -279,7 +257,7 @@ bot.on('ready', async function () {
 })
 
 bot.on('message', async message => {
-  if (comandos.find(element => message.content)) {
+  if (helper.comandos.find(element => message.content)) {
 
     if (message.content === '!register') {
       const existsRegister = await playerExists(message);
@@ -327,5 +305,5 @@ bot.on('message', async message => {
   }
 })
 
-bot.login(token);
+bot.login(helper.token);
 
