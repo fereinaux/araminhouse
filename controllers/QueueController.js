@@ -1,13 +1,6 @@
-const Discord = require('discord.js')
-const { mongoose, Schema } = require('./mongo')
-const playerModel = require('./models/Player')
-const queueModel = require('./models/Queue')
-const bot = new Discord.Client()
-const helper = require('./helper.json')
-
-const errColor = 15158332;
-const okColor = 3066993;
-const infoColor = 3447003;
+const queueModel = require('../models/Queue')
+const helper = require('../helper.json')
+const { MessageEmbed } = require('discord.js')
 
 async function queueExists() {
   const existsQueue = await queueModel.findOne({ $or: [{ status: 'aberta' }, { status: 'Em andamento' }] })
@@ -18,38 +11,13 @@ async function queueEmAndamentoExists() {
   return existsQueue;
 }
 
-async function playerExists(message) {
-  const playerExists = await getPlayerById(message.author.id)
-  return playerExists || message.author.bot;
-}
-
-async function getNicknameByMessage(message) {
-  const member = await message.guild.member(message.author);
-  return member && member.nickname ? member.nickname : message.author.username;
-}
-
-async function getPlayerById(id) {
-  const playerExists = await playerModel.findOne({ id: id })
-  return playerExists
-}
-
-function getMenctionById(id) {
-  return bot.guilds.cache.map(g => g.members.cache.find(e => e.id == id))
-}
-
-function setEloById(id, elo) {
-  const member = bot.guilds.cache.first().members.cache.find(e => e.id == id);
-  
-  member.setNickname(`[${elo}]${member.user.username}`);
-}
-
 async function setQueue(message) {
   const queueCreationExists = await queueExists();
   if (!queueCreationExists) {
-    const queueEmbed = new Discord.MessageEmbed()
+    const queueEmbed = new MessageEmbed()
       .setTitle(`Criação de Queues`)
       .setDescription("Escolha um tamanho para a Queue")
-      .setColor(infoColor)
+      .setColor(helper.infoColor)
 
     message.channel.send({ embed: queueEmbed }).then(embedMessage => {
       const reasonFilter = (reaction, user) => {
@@ -91,37 +59,38 @@ async function setQueue(message) {
 
           queueModel.create({ status: 'aberta', size: size })
 
-          const queueCreated = new Discord.MessageEmbed()
+          const queueCreated = new MessageEmbed()
             .setTitle(`Queue criada`)
             .setDescription(`**0/${size * 2}**`)
-            .setColor(okColor)
+            .setColor(helper.okColor)
           message.channel.send(queueCreated)
         })
       })
     })
 
   } else {
-    const queueExists = new Discord.MessageEmbed()
+    const queueExists = new MessageEmbed()
       .setTitle(`Já existe uma Queue em andamento!`)
-      .setColor(errColor)
+      .setColor(helper.errColor)
     message.channel.send(queueExists)
   }
 }
 
+
 async function setJoin(message) {
   const queueJoinExists = await queueExists();
   if (!queueJoinExists) {
-    const queueDoesntExists = new Discord.MessageEmbed()
+    const queueDoesntExists = new MessageEmbed()
       .setTitle(`Não existe uma Queue em andamento!`)
-      .setColor(errColor)
+      .setColor(helper.errColor)
     message.channel.send(queueDoesntExists)
   } else {
     if (queueJoinExists.players.length < (queueJoinExists.size * 2)) {
       let players = queueJoinExists.players;
       if (players.find(el => el.id == message.author.id)) {
-        const playerDuplicated = new Discord.MessageEmbed()
+        const playerDuplicated = new MessageEmbed()
           .setDescription(`${getMenctionById(message.author.id)} já está na Queue`)
-          .setColor(errColor)
+          .setColor(helper.errColor)
         message.channel.send(playerDuplicated)
       } else {
 
@@ -144,36 +113,48 @@ async function setJoin(message) {
           ${teamTwo.map(player => getMenctionById(player.id))}
           `;
 
-          const teamEmbed = new Discord.MessageEmbed()
+          const teamEmbed = new MessageEmbed()
             .setTitle(`Queue fechada`)
             .setDescription(teamsDescription)
-            .setColor(okColor)
+            .setColor(helper.okColor)
 
           message.channel.send(teamEmbed)
         } else {
-          const playerQueue = new Discord.MessageEmbed()
+          const playerQueue = new MessageEmbed()
             .setDescription(`**${getMenctionById(message.author.id)} entrou na Queue**
             **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)
-            .setColor(okColor)
+            .setColor(helper.okColor)
           message.channel.send(playerQueue)
         }
       }
     } else {
-      const queueSize = new Discord.MessageEmbed()
+      const queueSize = new MessageEmbed()
         .setTitle(`Queue fechada`)
-        .setColor(errColor)
+        .setColor(helper.errColor)
       message.channel.send(queueSize)
     }
+  }
+}
+
+async function ClearQueue(message) {
+  const queue = await queueExists();
+  if (queue) {
+    await queueModel.updateOne({ status: 'aberta' }, { status: 'Canelada' });
+    const msg = new MessageEmbed()
+      .setTitle(`Queue cancelada!`)
+      .setColor(helper.errColor)
+
+    message.channel.send(msg)
   }
 }
 
 async function setWin(message) {
   const queueCreationExists = await queueEmAndamentoExists();
   if (queueCreationExists) {
-    const queueEmbed = new Discord.MessageEmbed()
+    const queueEmbed = new MessageEmbed()
       .setTitle(`Definição de Vitória`)
       .setDescription("Qual time ganhou?")
-      .setColor(infoColor)
+      .setColor(helper.infoColor)
 
     message.channel.send({ embed: queueEmbed }).then(embedMessage => {
       const reasonFilter = (reaction, user) => {
@@ -196,12 +177,10 @@ async function setWin(message) {
               players2.map(async p => {
                 const player = await getPlayerById(p.id);
                 await playerModel.updateOne({ id: p.id }, { elo: player.elo - 5 })
-                setEloById(p.id, player.elo - 5)
               })
               players1.map(async p => {
                 const player = await getPlayerById(p.id);
                 await playerModel.updateOne({ id: p.id }, { elo: player.elo + 10 })
-                setEloById(p.id, player.elo + 10)
               })
               break;
             case '2⃣':
@@ -209,12 +188,10 @@ async function setWin(message) {
               players2.map(async p => {
                 const player = await getPlayerById(p.id);
                 await playerModel.updateOne({ id: p.id }, { elo: player.elo + 10 })
-                setEloById(p.id, player.elo + 10)
               })
               players1.map(async p => {
                 const player = await getPlayerById(p.id);
                 await playerModel.updateOne({ id: p.id }, { elo: player.elo - 5 })
-                setEloById(p.id, player.elo - 5)
               })
               break;
             default:
@@ -222,9 +199,9 @@ async function setWin(message) {
           }
           queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', winningTeam: time }).then();
 
-          const queueCreated = new Discord.MessageEmbed()
+          const queueCreated = new MessageEmbed()
             .setTitle(`Vitória associada ao Time ${time}`)
-            .setColor(okColor)
+            .setColor(helper.okColor)
           message.channel.send(queueCreated)
           setRanking(message)
         })
@@ -232,78 +209,12 @@ async function setWin(message) {
     })
 
   } else {
-    const queueExists = new Discord.MessageEmbed()
+    const queueExists = new MessageEmbed()
       .setTitle(`Não existe uma Queue em andamento!`)
-      .setColor(errColor)
+      .setColor(helper.errColor)
     message.channel.send(queueExists)
   }
 }
 
-async function setRanking(message) {
-  const players = await playerModel.find({}, ['id'], { sort: { elo: -1 } })
-  let rankDesc = '';
-  players.map((p, i) => rankDesc += `${i + 1}º - ${getMenctionById(p.id)}\n`)
 
-  const rankingEmbed = new Discord.MessageEmbed()
-    .setTitle(`Ranking do InHouse`)
-    .setDescription(rankDesc)
-    .setColor(infoColor)
-
-  message.channel.send(rankingEmbed)
-}
-
-bot.on('ready', async function () {
-  await bot.guilds.cache.first().members.fetch({ cache: true })
-})
-
-bot.on('message', async message => {
-  if (helper.comandos.find(element => message.content)) {
-
-    if (message.content === '!register') {
-      const existsRegister = await playerExists(message);
-      if (!(existsRegister)) {
-        playerModel.create({ name: message.author.username, id: message.author.id,elo:0 })
-        setEloById(message.author.id, 0)
-        const registerUserEmbed = new Discord.MessageEmbed()
-          .setDescription(`${getMenctionById(message.author.id)} registrado!`)
-          .setColor(okColor)
-        message.channel.send(registerUserEmbed)
-      } else {
-        const existsUserEmbed = new Discord.MessageEmbed()
-          .setDescription(`${getMenctionById(message.author.id)} já estava previamente registrado`)
-          .setColor(errColor)
-        message.channel.send(existsUserEmbed)
-      }
-    } else {
-      const registered = await playerExists(message);
-      if (!(registered)) {
-        const notRegisteredEmbed = new Discord.MessageEmbed()
-          .setDescription(`**${getMenctionById(message.author.id)} não registrado**
-          Registre-se como o comando !register`)
-          .setColor(errColor)
-        message.channel.send(notRegisteredEmbed)
-      } else {
-        switch (message.content) {
-          case '!queue':
-            await setQueue(message)
-            break;
-          case '!join':
-            await setJoin(message)
-            break;
-          case '!ranking':
-            await setRanking(message)
-            break;
-          case '!win':
-            await setWin(message)
-            break;
-          default:
-            break;
-        }
-      }
-    }
-
-  }
-})
-
-bot.login(helper.token);
-
+module.exports = { setWin, setJoin, setQueue, queueExists, queueEmAndamentoExists, ClearQueue }
