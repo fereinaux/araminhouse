@@ -7,6 +7,9 @@ function getMenctionById(id) {
 }
 
 async function SetPlayerRoleByRanking(player, top1) {
+  helper.roles.sort(function (a, b) {
+    return a.pontos - b.pontos;
+  })
   const roleHelper = top1 ?
     helper.roles.find(roleFilter => roleFilter.name == '6 - Top 1')
     : helper.roles.find(roleFilter => roleFilter.pontos > player.elo || (

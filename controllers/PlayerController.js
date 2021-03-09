@@ -84,6 +84,38 @@ async function info(message, id) {
       (x.teamTwo.find(y => y.id == id))
   )
 
+  const players = await getPlayersRanked()
+
+  if (players[0].id == player.id) {
+    image = 'https://i.pinimg.com/originals/90/8f/95/908f95127caf7f739877f9f555807361.png'
+  } else {
+    helper.roles.sort(function (a, b) {
+      return a.pontos - b.pontos;
+    })
+    const role = helper.roles.find(roleFilter => roleFilter.pontos > player.elo || (
+      roleFilter.pontos < player.elo &&
+      roleFilter.name == helper.roles.sort(s => s.pontos)[helper.roles.length - 1].name))
+
+    if (role.name.toLowerCase().includes('iron')) {
+      image = 'https://emoji.gg/assets/emoji/9421_Iron.png'
+    }
+    else if (role.name.toLowerCase().includes('bronze')) {
+      image = 'https://emoji.gg/assets/emoji/8300_Bronze.png'
+    } else if (role.name.toLowerCase().includes('prata')) {
+      image = 'https://emoji.gg/assets/emoji/5633_Silver.png'
+    } else if (role.name.toLowerCase().includes('ouro')) {
+      image = 'https://www.boostroyal.com.br/assets/images/divisions/gold.png'
+    } else if (role.name.toLowerCase().includes('platina')) {
+      image = 'https://i.pinimg.com/originals/d7/47/1e/d7471e2ef48175986e9b75b566f61408.png'
+    } else if (role.name.toLowerCase().includes('diamante')) {
+      image = 'https://emoji.gg/assets/emoji/6018_Diamond.png'
+    } else if (role.name.toLowerCase().includes('master')) {
+      image = 'https://i.pinimg.com/originals/69/61/ab/6961ab1af799f02df28fa74278d78120.png'
+    } else if (role.name.toLowerCase().includes('grandmaster')) {
+      image = 'https://emoji.gg/assets/emoji/2647_Grandmaster.png'
+    }
+  }
+
   let player1Wins = 0
 
   games.map(game => {
@@ -99,14 +131,14 @@ async function info(message, id) {
   })
 
   const msg = new MessageEmbed()
-
+    .setThumbnail(image)
     .setDescription(`
     **${utilsBot.getMenctionById(id)}**
 
       Jogos: ${games.length}
       Vitórias: ${player1Wins}
       Derrotas: ${games.length - player1Wins}
-      Punições: ${player.punicoes}
+      Punições: ${player.punicoes ? player.punicoes : 0}
       Elo: ${player.elo}
       `)
     .setColor(helper.infoColor)
@@ -119,8 +151,12 @@ async function getPlayerById(id) {
   return playerExists
 }
 
-async function setRanking(message) {
+async function getPlayersRanked() {
   const players = await playerModel.find({}, ['id', 'name', 'elo'], { sort: { elo: -1 } })
+  return players
+}
+async function setRanking(message) {
+  const players = await getPlayersRanked()
   let rankDesc = '';
   players.map(async (p, i) => {
     utilsBot.setEloByPlayer(p)

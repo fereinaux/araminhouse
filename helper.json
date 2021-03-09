@@ -18,24 +18,8 @@
   "infoColor": 3447003,
   "roles": [
     {
-      "name": "1 - Bronze",
-      "color": "#a76f2a",
-      "pontos": 10
-    },
-    {
-      "name": "2 - Prata",
-      "color": "#cccbcb",
-      "pontos": 20
-    },
-    {
-      "name": "3 - Ouro",
-      "color": "#eacd40",
-      "pontos": 30
-    },
-    {
-      "name": "4 - Platina",
-      "color": "#66ca85",
-      "pontos": 40
+      "name": "6 - Top 1",
+      "color": "#ec1010"
     },
     {
       "name": "5 - Diamante",
@@ -43,9 +27,25 @@
       "pontos": 50
     },
     {
-      "name": "6 - Top 1",
-      "color": "#ec1010"
-    }
+      "name": "4 - Platina",
+      "color": "#66ca85",
+      "pontos": 40
+    },
+    {
+      "name": "3 - Ouro",
+      "color": "#eacd40",
+      "pontos": 30
+    },
+    {
+      "name": "2 - Prata",
+      "color": "#cccbcb",
+      "pontos": 20
+    },
+    {
+      "name": "1 - Bronze",
+      "color": "#a76f2a",
+      "pontos": 10
+    }                 
   ],
   "channels": [
     {
