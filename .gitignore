@@ -1,3 +1,4 @@
 /.history
 /users
 /node_modules
+*.dev
