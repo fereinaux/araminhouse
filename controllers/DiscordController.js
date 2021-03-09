@@ -1,4 +1,4 @@
-const { bot, setRoles } = require('../utils/bot')
+const { bot, setRoles, setChannels } = require('../utils/bot')
 const helper = require('../helper.json')
 const playerController = require('./PlayerController')
 const queueController = require('./QueueController')
@@ -6,6 +6,7 @@ const queueController = require('./QueueController')
 bot.on('ready', async function () {
   await bot.guilds.cache.first().members.fetch({ cache: true })
   await setRoles();
+  await setChannels();
 })
 
 bot.on('message', async message => {

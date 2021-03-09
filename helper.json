@@ -21,7 +21,7 @@
     {
       "name": "4 - Prata",
       "color": "#cccbcb",
-      "pontos": 20      
+      "pontos": 20
     },
     {
       "name": "3 - Ouro",
@@ -37,6 +37,28 @@
       "name": "1 - Diamante",
       "color": "#96cee8",
       "pontos": 50
+    }
+  ],
+  "channels": [
+    {
+      "name": "Aram",
+      "options": {
+        "type": "category"
+      }
+    },
+    {
+      "name": "Time 1",
+      "options": {
+        "type": "voice",
+        "userLimit": 5
+      }
+    },
+    {
+      "name": "Time 2",
+      "options": {
+        "type": "voice",
+        "userLimit": 5
+      }
     }
   ]
 }
