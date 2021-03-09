@@ -172,12 +172,13 @@ async function setRanking(message) {
 }
 
 async function punish(message) {
+  console.log(1)
   if (message.member.hasPermission("ADMINISTRATOR")) {
     const arrMsg = message.content.split(' ');
     if (arrMsg.length > 1) {
       let pontos = parseInt(arrMsg[2])
       const id = arrMsg[1].replace('<', '').replace('>', '').replace('@', '').replace('!', '')
-      if (pontos) {
+      if (!isNaN(pontos)) {
         const player = await playerModel.findOneAndUpdate({ id: id }, { $inc: { elo: -pontos, punicoes: 1 } }, { new: true })
         utilsBot.setEloByPlayer(player)
         const msg = new MessageEmbed()
