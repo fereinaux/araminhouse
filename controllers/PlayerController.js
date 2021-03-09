@@ -31,36 +31,15 @@ async function versus(message, player1, player2) {
   const id1 = player1.replace('<', '').replace('>', '').replace('@', '').replace('!', '')
   const id2 = player2.replace('<', '').replace('>', '').replace('@', '').replace('!', '')
 
-  const games = await queueModel.find({
-    $or:
-      [{
-        $and:
-          [
-            {
-              status: 'Concluída'
-            }
-            , {
-              teamOne:
-                { $elemMatch: { id: id1 } }
-            }, {
-              teamTwo:
-                { $elemMatch: { id: id2 } }
-            },]
-        ,
-        $and:
-          [
-            {
-              status: 'Concluída'
-            }
-            , {
-              teamTwo:
-                { $elemMatch: { id: id2 } }
-            }, {
-              teamOne:
-                { $elemMatch: { id: id1 } }
-            },]
-      }]
-  })
+  const gamesquery = await queueModel.find()
+  const games = gamesquery.filter(
+    x =>
+      (
+        x.teamOne.find(y => y.id == id1) &&
+        x.teamTwo.find(y => y.id == id2)) ||
+      (x.teamOne.find(y => y.id == id2) &&
+        x.teamTwo.find(y => y.id == id1))
+  )
 
   let player1Wins = 0
   let player2Wins = 0
@@ -98,30 +77,12 @@ async function info(message, id) {
   id = id.replace('<', '').replace('>', '').replace('@', '').replace('!', '')
   const player = await getPlayerById(id)
 
-  const games = await queueModel.find({
-    $or:
-      [{
-        $and:
-          [
-            {
-              status: 'Concluída'
-            }
-            , {
-              teamOne:
-                { $elemMatch: { id: id } }
-            }]
-        ,
-        $and:
-          [
-            {
-              status: 'Concluída'
-            }
-            , {
-              teamTwo:
-                { $elemMatch: { id: id } }
-            }]
-      }]
-  })
+  const gamesquery = await queueModel.find()
+  const games = gamesquery.filter(
+    x =>
+      (x.teamOne.find(y => y.id == id)) ||
+      (x.teamTwo.find(y => y.id == id))
+  )
 
   let player1Wins = 0
 
