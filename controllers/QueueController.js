@@ -185,17 +185,17 @@ function setPoints(winningTeam, queue) {
 
   if (winningTeam == 1) {
     players2.map(async p => {
-      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: -5 } }))
+      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: -4 } }))
     })
     players1.map(async p => {
-      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: 10 } }))
+      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: 7 } }))
     })
   } else {
     players2.map(async p => {
-      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: 10 } }))
+      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: 7 } }))
     })
     players1.map(async p => {
-      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: -5 } }))
+      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: -4 } }))
     })
   }
   return arrPromises;
