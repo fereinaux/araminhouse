@@ -11,8 +11,11 @@
     "!versus",
     "!punish"
   ],
+  "splitTeams": false,
   "token": "ODE4NDU1ODAyMzg5OTg3NDE5.YEYUXQ.10DcE0kfuH3t0CjQ7tDrnfdo69M",
   "connectionString": "mongodb+srv://reinaux:reinaux09@cluster0.b1ikh.gcp.mongodb.net/inhouse?authSource=admin&replicaSet=Cluster0-shard-0&readPreference=primary&appname=MongoDB%20Compass&ssl=true",
+  "lolApiKey": "RGAPI-a68374a1-8495-46d7-b4a1-c244b2dd39cd",
+  "lolBaseUrl": "br1.api.riotgames.com",
   "errColor": 15158332,
   "okColor": 3066993,
   "infoColor": 3447003,

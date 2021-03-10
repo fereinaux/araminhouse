@@ -1,9 +1,11 @@
 const queueModel = require('../models/Queue')
 const helper = require('../helper.json')
-const { getQueueChannel, getMenctionById, getTeamOneChannel, getTeamTwoChannel, sendAllGeral } = require('../utils/bot')
+const { getQueueChannel, getMenctionById, getTeamOneChannel, getTeamTwoChannel, sendAllGeral, getEmojiByName } = require('../utils/bot')
 const { MessageEmbed } = require('discord.js')
 const { setRanking, getPlayerById } = require('./PlayerController')
 const playerModel = require('../models/Player')
+const utilsRiot = require('../utils/riot')
+
 
 async function queueExists() {
   const existsQueue = await queueModel.findOne({ $or: [{ status: 'aberta' }, { status: 'Em andamento' }] })
@@ -122,34 +124,102 @@ async function setJoin(message) {
           const teamTwoChannel = await getTeamTwoChannel()
           const teamOne = randomPlayers.slice(0, queueJoinExists.size)
           const teamTwo = randomPlayers.slice(queueJoinExists.size, queueJoinExists.size * 2)
-          await queueModel.updateOne({ status: 'aberta' }, { status: 'Em andamento', teamOne: teamOne, teamTwo: teamTwo });
-          const teamsDescription = `
-          **Time 1**
-          
-          ${teamOne.map(player => {
-            const member = getMenctionById(player.id)
-            member.voice.setChannel(teamOneChannel)
-            return member
-          })}
-          
-          **Time 2**
+          let arrElo = []
+          let arrPromises = []
+          let arrSubPromises = []
+          teamOne.map(async p => {
+            arrPromises.push(playerModel.findOne({ id: p.id })
+              .then(pm => {
+                if (pm.summoner && pm.summoner.id) {
+                  arrSubPromises.push(utilsRiot.searchSummonerLeague(pm.summoner.id).then(result => {
+                    const position = result.find(p => p.queueType == 'RANKED_SOLO_5x5')
+                    if (position) {
 
-          ${teamTwo.map(player => {
-            const member = getMenctionById(player.id)
-            member.voice.setChannel(teamTwoChannel)
-            return member
-          })}
-          `;
+                      arrElo.push({
 
-          const teamEmbed = new MessageEmbed()
-            .setTitle(`Queue fechada`)
-            .setDescription(teamsDescription)
-            .setColor(helper.okColor)
+                        id: pm.id,
+                        summonerName: pm.summoner.name,
+                        rank: position.rank,
+                        tier: position.tier,
+                        wins: position.wins,
+                        losses: position.losses
+                      })
+                    }
+                  }
+                  ))
+                }
+              }))
+          })
+          teamTwo.map(async p => {
+            arrPromises.push(playerModel.findOne({ id: p.id })
+              .then(pm => {
+                if (pm.summoner && pm.summoner.id) {
+                  arrSubPromises.push(utilsRiot.searchSummonerLeague(pm.summoner.id).then(result => {
+                    const position = result.find(p => p.queueType == 'RANKED_SOLO_5x5')
+                    if (position) {
 
-          message.channel.send(teamEmbed)
+                      arrElo.push({
+
+                        id: pm.id,
+                        summonerName: pm.summoner.name,
+                        rank: position.rank,
+                        tier: position.tier,
+                        wins: position.wins,
+                        losses: position.losses
+                      })
+                    }
+                  }
+                  ))
+                }
+              }))
+          })
+          Promise.all(arrPromises).then(r1 => Promise.all(arrSubPromises).then(r2 => {
+
+            function getElo(player) {
+              const elo = arrElo.find(a => a.id == player.id)
+              if (elo) {
+                return `- ${elo.summonerName} ${getEmojiByName(elo.tier.toLowerCase())} ${elo.tier.substr(0, 1)}${elo.tier.substr(1, 100).toLowerCase()} ${elo.rank}  W:${elo.wins}  L:${elo.losses}`
+              } else {
+                return ''
+              }
+
+            }
+
+            queueModel.updateOne({ status: 'aberta' }, { status: 'Em andamento', teamOne: teamOne, teamTwo: teamTwo });
+            const teamsDescription = `
+            **Time 1**
+            
+            ${decodeURI(teamOne.map(player => {
+              const member = getMenctionById(player.id)
+              if (helper.splitTeams) {
+                member.voice.setChannel(teamOneChannel)
+              }
+              return `${member} ${getElo(player)}`
+            }).join('%0D%0A'))}
+            
+            **Time 2**
+  
+            ${decodeURI(teamTwo.map(player => {
+              const member = getMenctionById(player.id)
+              if (helper.splitTeams) {
+                member.voice.setChannel(teamTwoChannel)
+              }
+              return `${member} ${getElo(player)}`
+            }).join('%0D%0A'))}
+            `;
+
+            const teamEmbed = new MessageEmbed()
+              .setTitle(`Queue fechada`)
+              .setDescription(teamsDescription)
+              .setColor(helper.okColor)
+
+            message.channel.send(teamEmbed)
+          }))
+
         } else {
           const queueChannel = await getQueueChannel()
-          message.member.voice.setChannel(queueChannel)
+          if (helper.splitTeams)
+            message.member.voice.setChannel(queueChannel)
           const playerQueue = new MessageEmbed()
             .setDescription(`**${getMenctionById(message.author.id)} entrou na Queue**
             **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)

@@ -6,6 +6,10 @@ function getMenctionById(id) {
   return bot.guilds.cache.first().members.cache.find(e => e.id == id)
 }
 
+function getEmojiByName(name){
+  return bot.guilds.cache.first().emojis.cache.find(e => e.name == name)
+}
+
 async function SetPlayerRoleByRanking(player, top1) {
   helper.roles.sort(function (a, b) {
     return a.pontos - b.pontos;
@@ -107,4 +111,4 @@ async function getNicknameByMessage(message) {
   return member && member.nickname ? member.nickname : message.author.username;
 }
 
-module.exports = { getMenctionById, setEloByPlayer, getNicknameByMessage, bot, setRoles, setChannels, SetPlayerRoleByRanking, getQueueChannel, getTeamOneChannel, getTeamTwoChannel, sendAllGeral }
+module.exports = { getMenctionById, setEloByPlayer, getNicknameByMessage, bot, setRoles, setChannels, SetPlayerRoleByRanking, getQueueChannel, getTeamOneChannel, getTeamTwoChannel, sendAllGeral, getEmojiByName }

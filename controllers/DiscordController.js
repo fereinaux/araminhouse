@@ -54,6 +54,9 @@ bot.on('message', async message => {
               await playerController.punish(message)
             }
             break
+          case '!summoner':
+            await playerController.registerSummoner(message)
+            break
           default:
             break;
         }
