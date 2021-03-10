@@ -7,7 +7,8 @@ const playerSchema = new Schema({
   punicoes: Number,
   summoner: {
     name: String,
-    id: String    
+    id: String,
+    accountId: String    
   }
 });
 

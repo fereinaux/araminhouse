@@ -294,7 +294,7 @@ async function registerSummoner(message) {
   const summoner = await utilsRiot.searchBySummonerName(summonerName)
 
   if (summoner) {
-    await playerModel.findOneAndUpdate({ id: id }, { summoner: { name: summoner.name, id: summoner.id } })
+    await playerModel.findOneAndUpdate({ id: id }, { summoner: { name: summoner.name, id: summoner.id, accountId: summoner.accountId } })
     const positions = await utilsRiot.searchSummonerLeague(summoner.id);
     const position = positions.find(p => p.queueType == 'RANKED_SOLO_5x5');
 

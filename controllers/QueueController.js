@@ -96,14 +96,17 @@ async function setQueue(message) {
   }
 }
 
+async function msgQueueNotExists(message) {
+  const queueDoesntExists = new MessageEmbed()
+    .setTitle(`Não existe uma Queue em andamento!`)
+    .setColor(helper.errColor)
+  message.channel.send(queueDoesntExists)
+}
 
 async function setJoin(message) {
   const queueJoinExists = await queueExists();
   if (!queueJoinExists) {
-    const queueDoesntExists = new MessageEmbed()
-      .setTitle(`Não existe uma Queue em andamento!`)
-      .setColor(helper.errColor)
-    message.channel.send(queueDoesntExists)
+    msgQueueNotExists(message)
   } else {
     if (queueJoinExists.players.length < (queueJoinExists.size * 2)) {
       let players = queueJoinExists.players;
@@ -113,8 +116,8 @@ async function setJoin(message) {
           .setColor(helper.errColor)
         message.channel.send(playerDuplicated)
       } else {
-
-        players.push({ name: message.author.username, id: message.author.id })
+        const player = await playerModel.findOne({ id: message.author.id })
+        players.push({ name: message.author.username, id: message.author.id, summoner: player.summoner })
         await queueModel.updateOne({ status: 'aberta' }, { players: players }, { new: true })
 
         if (queueJoinExists.players.length == (queueJoinExists.size * 2)) {
@@ -185,35 +188,38 @@ async function setJoin(message) {
 
             }
 
-            queueModel.updateOne({ status: 'aberta' }, { status: 'Em andamento', teamOne: teamOne, teamTwo: teamTwo });
-            const teamsDescription = `
+            queueModel.updateOne({ status: 'aberta' }, { status: 'Em andamento', teamOne: teamOne, teamTwo: teamTwo }).then(result => {
+
+
+              const teamsDescription = `
             **Time 1**
             
             ${decodeURI(teamOne.map(player => {
-              const member = getMenctionById(player.id)
-              if (helper.splitTeams) {
-                member.voice.setChannel(teamOneChannel)
-              }
-              return `${member} ${getElo(player)}`
-            }).join('%0D%0A'))}
+                const member = getMenctionById(player.id)
+                if (helper.splitTeams) {
+                  member.voice.setChannel(teamOneChannel)
+                }
+                return `${member} ${getElo(player)}`
+              }).join('%0D%0A'))}
             
             **Time 2**
   
             ${decodeURI(teamTwo.map(player => {
-              const member = getMenctionById(player.id)
-              if (helper.splitTeams) {
-                member.voice.setChannel(teamTwoChannel)
-              }
-              return `${member} ${getElo(player)}`
-            }).join('%0D%0A'))}
+                const member = getMenctionById(player.id)
+                if (helper.splitTeams) {
+                  member.voice.setChannel(teamTwoChannel)
+                }
+                return `${member} ${getElo(player)}`
+              }).join('%0D%0A'))}
             `;
 
-            const teamEmbed = new MessageEmbed()
-              .setTitle(`Queue fechada`)
-              .setDescription(teamsDescription)
-              .setColor(helper.okColor)
+              const teamEmbed = new MessageEmbed()
+                .setTitle(`Queue fechada`)
+                .setDescription(teamsDescription)
+                .setColor(helper.okColor)
 
-            message.channel.send(teamEmbed)
+              message.channel.send(teamEmbed)
+            });
           }))
 
         } else {
@@ -349,4 +355,76 @@ async function updateQueue(message, time) {
 }
 
 
-module.exports = { setWin, setJoin, setQueue, queueExists, queueEmAndamentoExists, ClearQueue }
+async function check(message) {
+  const queue = await queueModel.findOne({ status: 'Em andamento' })
+
+  if (queue) {
+
+    if (queue.matchId) {
+
+      const player = queue.players.find(e => e.summoner && e.summoner.accountId)
+      const response = await utilsRiot.getMatchById(queue.matchId)
+      // const response = await utilsRiot.getMatchById('2208131182')
+      if (response) {
+        response.participants.sort(function (a, b) {
+          return b.stats.totalDamageDealtToChampions - a.stats.totalDamageDealtToChampions;
+        })
+
+        const mostDamage = { player: queue.players[response.participants[0].participantId - 1], damage: response.participants[0].stats.totalDamageDealtToChampions }
+
+        response.participants.sort(function (a, b) {
+          return ((b.stats.kills + b.stats.assists) / b.stats.deaths > 0 ? b.stats.deaths : 1) - ((a.stats.kills + a.stats.assists) / a.stats.deaths > 0 ? a.stats.deaths : 1);
+        })
+        const kdaParticipant = response.participants[0]
+        const kdaPlayer = { player: queue.players[response.participants[0].participantId - 1], kda: ((kdaParticipant.stats.kills + kdaParticipant.stats.assists) / kdaParticipant.stats.deaths > 0 ? kdaParticipant.stats.deaths : 1) }
+
+        const msg = new MessageEmbed()
+          .setDescription(`**Partida Finalizada** 
+
+        **Time ${response.teams[0].win == 'Win' ? 1 : 2} Venceu**
+        Top Damage: ${getMenctionById(mostDamage.player.id)} - ${Math.floor(mostDamage.damage / 1000)}K
+        KDA Player: ${getMenctionById(kdaPlayer.player.id)} - ${kdaPlayer.kda} `)
+          .setColor(helper.okColor)
+        message.channel.send(msg)
+        const time = response.teams[0].win == 'Win' ? 1 : 2    
+        const arrPromises = setPoints(time, queue)
+        Promise.all(arrPromises).then(e => updateQueue(message, time))
+      } else {
+        const msg = new MessageEmbed()
+          .setTitle(`A partida ainda está em andamento`)
+          .setColor(helper.errColor)
+        message.channel.send(msg)
+      }
+    } else {
+      const player = queue.players.find(e => e.summoner && e.summoner.accountId)
+      const response = await utilsRiot.searchActiveMatch(player.summoner.id)
+      if (response) {
+        const newArrPlayers = []
+        response.participants.map(e => {
+          newArrPlayers.push(queue.players.find(p => p.summoner.id == e.summonerId))
+        })
+        await queueModel.updateOne({ status: 'Em andamento' }, { matchId: response.gameId, players: newArrPlayers })
+        const msg = new MessageEmbed()
+          .setDescription(`**Partida encontrada** 
+          Ao finaliza-la executar o comando !check novamente`)
+          .setColor(helper.okColor)
+        message.channel.send(msg)
+      } else {
+        const msg = new MessageEmbed()
+          .setTitle(`partida não encontrada`)
+          .setColor(helper.errColor)
+        message.channel.send(msg)
+      }
+
+    }
+
+
+
+
+
+  } else {
+    msgQueueNotExists(message)
+  }
+}
+
+module.exports = { setWin, setJoin, setQueue, queueExists, queueEmAndamentoExists, ClearQueue, check }
