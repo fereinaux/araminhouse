@@ -280,7 +280,7 @@ async function reset(message) {
   if (message.member.hasPermission("ADMINISTRATOR")) {
     const players = await playerModel.find()
     let arrPromises =[]
-    players.map(p => arrPromises.push(playerModel.updateOne({ id: p.id }, { elo: 0 })))
+    players.map(p => arrPromises.push(playerModel.updateOne({ id: p.id }, { elo: 0, punicoes:0 })))
     Promise.all(arrPromises).then(result => setRanking(message))
   } else {
     utilsBot.noPermission(message)
