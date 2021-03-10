@@ -124,7 +124,7 @@ async function info(message, id) {
 
         `${utilsBot.getEmojiByName(position.tier.toLowerCase())} **${player.summoner.name}**
 
-        ${position.tier.substr(0,1)}${position.tier.substr(1,100).toLowerCase()} ${position.rank}       
+        ${position.tier.substr(0, 1)}${position.tier.substr(1, 100).toLowerCase()} ${position.rank}       
         Jogos: ${position.wins + position.losses}
         Vitórias: ${position.wins}
         Derrotas: ${position.losses} 
@@ -272,11 +272,18 @@ async function punish(message) {
         .setColor(helper.errColor)
     }
   } else {
-    const msg = new MessageEmbed()
-      .setDescription(`${utilsBot.getMenctionById(message.author.id)}, você não permissão para fazer isso`)
-      .setColor(helper.errColor)
+    utilsBot.noPermission(message)
+  }
+}
 
-    message.channel.send(msg)
+async function reset(message) {
+  if (message.member.hasPermission("ADMINISTRATOR")) {
+    const players = await playerModel.find()
+    let arrPromises =[]
+    players.map(p => arrPromises.push(playerModel.updateOne({ id: p.id }, { elo: 0 })))
+    Promise.all(arrPromises).then(result => setRanking(message))
+  } else {
+    utilsBot.noPermission(message)
   }
 }
 
@@ -319,4 +326,4 @@ async function registerSummoner(message) {
   }
 }
 
-module.exports = { setRanking, getPlayerById, handleRegister, playerExists, versus, info, punish, registerSummoner }
+module.exports = { setRanking, getPlayerById, handleRegister, playerExists, versus, info, punish, reset, registerSummoner }

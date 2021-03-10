@@ -6,8 +6,16 @@ function getMenctionById(id) {
   return bot.guilds.cache.first().members.cache.find(e => e.id == id)
 }
 
-function getEmojiByName(name){
+function getEmojiByName(name) {
   return bot.guilds.cache.first().emojis.cache.find(e => e.name == name)
+}
+
+function noPermission(message) {
+  const msg = new Discord.MessageEmbed()
+    .setDescription(`${getMenctionById(message.author.id)}, você não permissão para fazer isso`)
+    .setColor(helper.errColor)
+
+  message.channel.send(msg)
 }
 
 async function SetPlayerRoleByRanking(player, top1) {
@@ -111,4 +119,4 @@ async function getNicknameByMessage(message) {
   return member && member.nickname ? member.nickname : message.author.username;
 }
 
-module.exports = { getMenctionById, setEloByPlayer, getNicknameByMessage, bot, setRoles, setChannels, SetPlayerRoleByRanking, getQueueChannel, getTeamOneChannel, getTeamTwoChannel, sendAllGeral, getEmojiByName }
+module.exports = { getMenctionById, setEloByPlayer, getNicknameByMessage, bot, setRoles, setChannels, SetPlayerRoleByRanking, getQueueChannel, getTeamOneChannel, getTeamTwoChannel, sendAllGeral, getEmojiByName, noPermission }

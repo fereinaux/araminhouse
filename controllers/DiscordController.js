@@ -49,6 +49,9 @@ bot.on('message', async message => {
               await playerController.info(message, arrMsg[1])
             }
             break
+          case '!reset':
+            await playerController.reset(message)
+            break
           case '!punish':
             if (arrMsg.length == 3) {
               await playerController.punish(message)
