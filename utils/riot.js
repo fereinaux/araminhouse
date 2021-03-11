@@ -1,10 +1,10 @@
 const axios = require('axios');
-const helper = require('../helper.json')
+const connections = require('../connections.json')
 
 const api = axios.create({
-  baseURL: 'https://br1.api.riotgames.com',
+  baseURL:  connections.lolBaseUrl,
   timeout: 10000,
-  headers: { "X-Riot-Token": helper.lolApiKey },
+  headers: { "X-Riot-Token": connections.lolApiKey },
   validateStatus: false
 });
 

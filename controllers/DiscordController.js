@@ -1,6 +1,7 @@
 const { bot, setRoles, setChannels } = require('../utils/bot')
 const { MessageEmbed } = require('discord.js')
 const helper = require('../helper.json')
+const connections = require('../connections.json')
 const playerController = require('./PlayerController')
 const queueController = require('./QueueController')
 
@@ -75,4 +76,4 @@ bot.on('message', async message => {
   }
 })
 
-bot.login(helper.token);
+bot.login(connections.token);

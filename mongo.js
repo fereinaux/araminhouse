@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 const helper = require('./helper.json')
-mongoose.connect(helper.connectionString , {
+const connections = require('./connections.json')
+mongoose.connect(connections.connectionString , {
   useNewUrlParser: true
 })
 
