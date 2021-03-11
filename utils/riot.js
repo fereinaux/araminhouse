@@ -1,5 +1,5 @@
 const axios = require('axios');
-const connections = require('../connections.json')
+const connections = require('../helper.json')
 
 const api = axios.create({
   baseURL:  connections.lolBaseUrl,
@@ -34,7 +34,7 @@ async function searchActiveMatch(summonerid) {
 }
 
 async function getMatchById(matchId) {
-  const response = await api.get(`lol/match/v4/matches/${matchId}`)
+  const response = await api.get(`lol/match/v4/matches/${matchId}`)  
   if (response.status == 200) {
     return response.data
   }

@@ -12,6 +12,8 @@
     "!punish"
   ],
   "splitTeams": false,
+  "lolApiKey": "RGAPI-398cb1fc-720d-42e7-b75e-74c32be528df",
+  "lolBaseUrl": "https://br1.api.riotgames.com",
   "errColor": 15158332,
   "okColor": 3066993,
   "infoColor": 3447003,

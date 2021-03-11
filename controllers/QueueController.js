@@ -249,7 +249,7 @@ async function setJoin(message) {
   }
 }
 
-async function ClearQueue(message) {
+async function ClearQueue() {
   const queue = await queueExists();
   if (queue) {
     await queueModel.updateOne({ $or: [{ status: 'aberta' }, { status: 'Em andamento' }] }, { status: 'Canelada' });
@@ -264,93 +264,34 @@ async function ClearQueue(message) {
 }
 
 function setPoints(winningTeam, queue) {
-  const players1 = queue.teamOne;
-  const players2 = queue.teamTwo;
   const arrPromises = []
+  queue.players.map(p => {
 
-  if (winningTeam == 1) {
-    players2.map(async p => {
-      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: -4 } }))
-    })
-    players1.map(async p => {
-      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: 7 } }))
-    })
-  } else {
-    players2.map(async p => {
-      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: 7 } }))
-    })
-    players1.map(async p => {
-      arrPromises.push(playerModel.updateOne({ id: p.id }, { $inc: { elo: -4 } }))
-    })
-  }
+    const win = p.stats.win
+
+    arrPromises.push(playerModel.findOneAndUpdate({ id: p.id }, { $inc: { elo: win ? 7 : -4 } }, { new: true }).then(result => {
+      const pvtMsg = new MessageEmbed()
+        .setTitle(`Informações da Partida`)
+        .setThumbnail(utilsRiot.getImageByChampionPath(p.champion.path))
+        .setDescription(`**${win ? 'Vitória' : 'Derrota'}**
+        Dano: ${Math.floor(p.stats.damage / 1000)}K
+        KDA: ${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}
+        Gold: ${Math.floor(p.stats.gold / 1000)}K   
+        Pontos: ${result.elo}     
+      `)
+        .setColor(win ? helper.okColor : helper.errColor)
+
+      getMenctionById(p.id).send(pvtMsg)
+
+    }))
+  })
+
   return arrPromises;
-}
-
-async function setWin(message) {
-  const queueCreationExists = await queueEmAndamentoExists();
-  if (queueCreationExists) {
-    const arrMsg = message.content.split(' ');
-    if (arrMsg.length > 1) {
-      let time = parseInt(arrMsg[1])
-      if (time && time < 3) {
-        const arrPromises = setPoints(time, queueCreationExists)
-        Promise.all(arrPromises).then(e => updateQueue(message, time))
-      } else {
-        const msg = new MessageEmbed()
-          .setTitle(`Escolha entre os times 1 e 2`)
-          .setColor(helper.errColor)
-        getGeralTextChannel().send(msg)
-      }
-    }
-    else {
-      const queueEmbed = new MessageEmbed()
-        .setTitle(`Definição de Vitória`)
-        .setDescription("Qual time ganhou?")
-        .setColor(helper.infoColor)
-
-      getGeralTextChannel().send({ embed: queueEmbed }).then(embedMessage => {
-        const reasonFilter = (reaction, user) => {
-          return ['1⃣', '2⃣'].includes(reaction.emoji.name) && user.id === message.author.id;
-        };
-
-        Promise.all([
-          embedMessage.react('1⃣'),
-          embedMessage.react('2⃣'),
-        ]).then(() => {
-          embedMessage.awaitReactions(reasonFilter, { max: 1, time: 120000 }).then(collected => {
-
-            const reasonReaction = collected.first()
-
-            time = 1
-            let arrPromises = []
-            switch (reasonReaction.emoji.name) {
-              case '1⃣':
-                time = 1
-                arrPromises = setPoints(1, queueCreationExists)
-                break;
-              case '2⃣':
-                time = 2
-                arrPromises = setPoints(2, queueCreationExists)
-
-                break;
-              default:
-                break;
-            }
-
-            Promise.all(arrPromises).then(e => updateQueue(message, time))
-          })
-        })
-      })
-    }
-
-  } else {
-    msgQueueNotExists()
-  }
 }
 
 async function updateQueue(time) {
   queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', winningTeam: time }).then(result => {
-    sendAllGeral()
+    // sendAllGeral()
     const queueCreated = new MessageEmbed()
       .setTitle(`Vitória associada ao Time ${time}`)
       .setColor(helper.okColor)
@@ -361,6 +302,7 @@ async function updateQueue(time) {
 }
 
 async function handleCronCheck() {
+
   const queue = await queueModel.findOne({ status: 'Em andamento' })
 
   if (queue) {
@@ -397,7 +339,9 @@ async function handleQueueHasMatchId(queue, response) {
       largestMultiKill: partcipantStats.largestMultiKill,
       gold: partcipantStats.goldEarned,
       totalPlayerScore: partcipantStats.totalPlayerScore,
-      minions: partcipantStats.totalMinionsKilled
+      minions: partcipantStats.totalMinionsKilled,
+      win: partcipantStats.win,
+      kda: (partcipantStats.stats.kills + partcipantStats.stats.assists )/(partcipantStats.stats.deaths > 0 ? partcipantStats.stats.deaths : 1)
     }
     p.champion = {
       name: champion.id,
@@ -406,9 +350,8 @@ async function handleQueueHasMatchId(queue, response) {
   })
 
   await queueModel.findOneAndUpdate({ status: 'Em andamento' }, queue)
-
   const mostDamage = queue.players.sort((a, b) => b.stats.damage - a.stats.damage)[0];
-  const kdaPlayer = queue.players.sort((a, b) => (a.stats.kills + a.stats.assists) / a.stats.deaths > 0 ? a.stats.deaths : 1 - (b.stats.kills + b.stats.assists) / b.stats.deaths > 0 ? b.stats.deaths : 1)[0];
+  const kdaPlayer = queue.players.sort((a, b) => b.kda - a.kda)[0];
   const feeder = queue.players.sort((a, b) => b.stats.deaths - a.stats.deaths)[0];
 
   const time = response.teams[0].win == 'Win' ? 1 : 2
@@ -464,4 +407,4 @@ async function handlePlayerInGame(response, queue) {
   getGeralTextChannel().send(msg)
 }
 
-module.exports = { setWin, setJoin, setQueue, queueExists, queueEmAndamentoExists, ClearQueue, handleCronCheck }
+module.exports = { setJoin, setQueue, queueExists, queueEmAndamentoExists, ClearQueue, handleCronCheck }
