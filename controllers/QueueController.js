@@ -447,8 +447,7 @@ async function handleQueueHasMatchId(queue, response) {
   getGeralTextChannel().send(msgTopDamage)
   getGeralTextChannel().send(msgKDA)
   getGeralTextChannel().send(msgFeeder)
-  // const arrPromises = setPoints(time, queue)
-  const arrPromises = []
+  const arrPromises = setPoints(time, queue)
   Promise.all(arrPromises).then(e => updateQueue(time))
 }
 
