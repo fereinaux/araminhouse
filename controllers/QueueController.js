@@ -1,11 +1,18 @@
 const queueModel = require('../models/Queue')
 const helper = require('../helper.json')
-const { getQueueChannel, getMenctionById, getTeamOneChannel, getTeamTwoChannel, sendAllGeral, getEmojiByName } = require('../utils/bot')
+const {
+  getQueueChannel,
+  getMenctionById,
+  getTeamOneChannel,
+  getTeamTwoChannel,
+  sendAllGeral,
+  getEmojiByName,
+  getGeralTextChannel
+} = require('../utils/bot')
 const { MessageEmbed } = require('discord.js')
 const { setRanking, getPlayerById } = require('./PlayerController')
 const playerModel = require('../models/Player')
 const utilsRiot = require('../utils/riot')
-
 
 async function queueExists() {
   const existsQueue = await queueModel.findOne({ $or: [{ status: 'aberta' }, { status: 'Em andamento' }] })
@@ -23,7 +30,7 @@ async function createQueue(message, size) {
     .setTitle(`Queue criada`)
     .setDescription(`**0/${size * 2}**`)
     .setColor(helper.okColor)
-  message.channel.send(queueCreated)
+  getGeralTextChannel().send(queueCreated)
 }
 
 async function setQueue(message) {
@@ -38,7 +45,7 @@ async function setQueue(message) {
         const msg = new MessageEmbed()
           .setTitle(`Tamanho da Queue não suportado`)
           .setColor(helper.errColor)
-        message.channel.send(msg)
+        getGeralTextChannel().send(msg)
       }
     } else {
       const queueEmbed = new MessageEmbed()
@@ -46,7 +53,7 @@ async function setQueue(message) {
         .setDescription("Escolha um tamanho para a Queue")
         .setColor(helper.infoColor)
 
-      message.channel.send({ embed: queueEmbed }).then(embedMessage => {
+      getGeralTextChannel().send({ embed: queueEmbed }).then(embedMessage => {
         const reasonFilter = (reaction, user) => {
           return ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣'].includes(reaction.emoji.name) && user.id === message.author.id;
         };
@@ -92,21 +99,21 @@ async function setQueue(message) {
     const queueExists = new MessageEmbed()
       .setTitle(`Já existe uma Queue em andamento!`)
       .setColor(helper.errColor)
-    message.channel.send(queueExists)
+    getGeralTextChannel().send(queueExists)
   }
 }
 
-async function msgQueueNotExists(message) {
+async function msgQueueNotExists() {
   const queueDoesntExists = new MessageEmbed()
     .setTitle(`Não existe uma Queue em andamento!`)
     .setColor(helper.errColor)
-  message.channel.send(queueDoesntExists)
+  getGeralTextChannel().send(queueDoesntExists)
 }
 
 async function setJoin(message) {
   const queueJoinExists = await queueExists();
   if (!queueJoinExists) {
-    msgQueueNotExists(message)
+    msgQueueNotExists()
   } else {
     if (queueJoinExists.players.length < (queueJoinExists.size * 2)) {
       let players = queueJoinExists.players;
@@ -114,7 +121,7 @@ async function setJoin(message) {
         const playerDuplicated = new MessageEmbed()
           .setDescription(`${getMenctionById(message.author.id)} já está na Queue`)
           .setColor(helper.errColor)
-        message.channel.send(playerDuplicated)
+        getGeralTextChannel().send(playerDuplicated)
       } else {
         const player = await playerModel.findOne({ id: message.author.id })
         players.push({ name: message.author.username, id: message.author.id, summoner: player.summoner })
@@ -218,7 +225,7 @@ async function setJoin(message) {
                 .setDescription(teamsDescription)
                 .setColor(helper.okColor)
 
-              message.channel.send(teamEmbed)
+              getGeralTextChannel().send(teamEmbed)
             });
           }))
 
@@ -230,14 +237,14 @@ async function setJoin(message) {
             .setDescription(`**${getMenctionById(message.author.id)} entrou na Queue**
             **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)
             .setColor(helper.okColor)
-          message.channel.send(playerQueue)
+          getGeralTextChannel().send(playerQueue)
         }
       }
     } else {
       const queueSize = new MessageEmbed()
         .setTitle(`Queue fechada`)
         .setColor(helper.errColor)
-      message.channel.send(queueSize)
+      getGeralTextChannel().send(queueSize)
     }
   }
 }
@@ -250,7 +257,9 @@ async function ClearQueue(message) {
       .setTitle(`Queue cancelada!`)
       .setColor(helper.errColor)
 
-    message.channel.send(msg)
+    getGeralTextChannel().send(msg)
+  } else {
+    msgQueueNotExists()
   }
 }
 
@@ -290,7 +299,7 @@ async function setWin(message) {
         const msg = new MessageEmbed()
           .setTitle(`Escolha entre os times 1 e 2`)
           .setColor(helper.errColor)
-        message.channel.send(msg)
+        getGeralTextChannel().send(msg)
       }
     }
     else {
@@ -299,7 +308,7 @@ async function setWin(message) {
         .setDescription("Qual time ganhou?")
         .setColor(helper.infoColor)
 
-      message.channel.send({ embed: queueEmbed }).then(embedMessage => {
+      getGeralTextChannel().send({ embed: queueEmbed }).then(embedMessage => {
         const reasonFilter = (reaction, user) => {
           return ['1⃣', '2⃣'].includes(reaction.emoji.name) && user.id === message.author.id;
         };
@@ -335,96 +344,125 @@ async function setWin(message) {
     }
 
   } else {
-    const queueExists = new MessageEmbed()
-      .setTitle(`Não existe uma Queue em andamento!`)
-      .setColor(helper.errColor)
-    message.channel.send(queueExists)
+    msgQueueNotExists()
   }
 }
 
-async function updateQueue(message, time) {
+async function updateQueue(time) {
   queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', winningTeam: time }).then(result => {
     sendAllGeral()
     const queueCreated = new MessageEmbed()
       .setTitle(`Vitória associada ao Time ${time}`)
       .setColor(helper.okColor)
-    message.channel.send(queueCreated)
-    setRanking(message)
+    getGeralTextChannel().send(queueCreated)
+    setRanking()
   }
   )
 }
 
-
-async function check(message) {
+async function handleCronCheck() {
   const queue = await queueModel.findOne({ status: 'Em andamento' })
 
   if (queue) {
-
     if (queue.matchId) {
-
-      const player = queue.players.find(e => e.summoner && e.summoner.accountId)
       const response = await utilsRiot.getMatchById(queue.matchId)
-      // const response = await utilsRiot.getMatchById('2208131182')
       if (response) {
-        response.participants.sort(function (a, b) {
-          return b.stats.totalDamageDealtToChampions - a.stats.totalDamageDealtToChampions;
-        })
-
-        const mostDamage = { player: queue.players[response.participants[0].participantId - 1], damage: response.participants[0].stats.totalDamageDealtToChampions }
-
-        response.participants.sort(function (a, b) {
-          return ((b.stats.kills + b.stats.assists) / b.stats.deaths > 0 ? b.stats.deaths : 1) - ((a.stats.kills + a.stats.assists) / a.stats.deaths > 0 ? a.stats.deaths : 1);
-        })
-        const kdaParticipant = response.participants[0]
-        const kdaPlayer = { player: queue.players[response.participants[0].participantId - 1], kda: ((kdaParticipant.stats.kills + kdaParticipant.stats.assists) / kdaParticipant.stats.deaths > 0 ? kdaParticipant.stats.deaths : 1) }
-
-        const msg = new MessageEmbed()
-          .setDescription(`**Partida Finalizada** 
-
-        **Time ${response.teams[0].win == 'Win' ? 1 : 2} Venceu**
-        Top Damage: ${getMenctionById(mostDamage.player.id)} - ${Math.floor(mostDamage.damage / 1000)}K
-        KDA Player: ${getMenctionById(kdaPlayer.player.id)} - ${kdaPlayer.kda} `)
-          .setColor(helper.okColor)
-        message.channel.send(msg)
-        const time = response.teams[0].win == 'Win' ? 1 : 2    
-        const arrPromises = setPoints(time, queue)
-        Promise.all(arrPromises).then(e => updateQueue(message, time))
-      } else {
-        const msg = new MessageEmbed()
-          .setTitle(`A partida ainda está em andamento`)
-          .setColor(helper.errColor)
-        message.channel.send(msg)
+        handleQueueHasMatchId(queue, response)
       }
     } else {
       const player = queue.players.find(e => e.summoner && e.summoner.accountId)
       const response = await utilsRiot.searchActiveMatch(player.summoner.id)
       if (response) {
-        const newArrPlayers = []
-        response.participants.map(e => {
-          newArrPlayers.push(queue.players.find(p => p.summoner.id == e.summonerId))
-        })
-        await queueModel.updateOne({ status: 'Em andamento' }, { matchId: response.gameId, players: newArrPlayers })
-        const msg = new MessageEmbed()
-          .setDescription(`**Partida encontrada** 
-          Ao finaliza-la executar o comando !check novamente`)
-          .setColor(helper.okColor)
-        message.channel.send(msg)
-      } else {
-        const msg = new MessageEmbed()
-          .setTitle(`partida não encontrada`)
-          .setColor(helper.errColor)
-        message.channel.send(msg)
+        await handlePlayerInGame(response, queue)
       }
-
     }
-
-
-
-
-
-  } else {
-    msgQueueNotExists(message)
   }
 }
 
-module.exports = { setWin, setJoin, setQueue, queueExists, queueEmAndamentoExists, ClearQueue, check }
+
+async function handleQueueHasMatchId(queue, response) {
+  const championsObj = await utilsRiot.getChampions()
+  const champions = Object.keys(championsObj).map(key => { return championsObj[key] })
+  queue.players.map((p, i) => {
+    const partcipant = response.participants[i]
+    const champion = champions.find(c => c.key == partcipant.championId)
+    const partcipantStats = partcipant.stats
+    p.stats =
+    {
+      kills: partcipantStats.kills,
+      deaths: partcipantStats.deaths,
+      assists: partcipantStats.assists,
+      damage: partcipantStats.totalDamageDealtToChampions,
+
+      largestMultiKill: partcipantStats.largestMultiKill,
+      gold: partcipantStats.goldEarned,
+      totalPlayerScore: partcipantStats.totalPlayerScore,
+      minions: partcipantStats.totalMinionsKilled
+    }
+    p.champion = {
+      name: champion.id,
+      path: champion.image.full
+    }
+  })
+
+  await queueModel.findOneAndUpdate({ status: 'Em andamento' }, queue)
+
+  const mostDamage = queue.players.sort((a, b) => b.stats.damage - a.stats.damage)[0];
+  const kdaPlayer = queue.players.sort((a, b) => (a.stats.kills + a.stats.assists) / a.stats.deaths > 0 ? a.stats.deaths : 1 - (b.stats.kills + b.stats.assists) / b.stats.deaths > 0 ? b.stats.deaths : 1)[0];
+  const feeder = queue.players.sort((a, b) => b.stats.deaths - a.stats.deaths)[0];
+
+  const time = response.teams[0].win == 'Win' ? 1 : 2
+
+  const msg = new MessageEmbed()
+    .setDescription(`**Partida Finalizada** 
+        **Time ${time == 'Win' ? 1 : 2} Venceu**
+      `)
+    .setColor(helper.okColor)
+
+  const msgTopDamage = new MessageEmbed()
+    .setTitle(`Top Damage`)
+    .setThumbnail(utilsRiot.getImageByChampionPath(mostDamage.champion.path))
+    .setDescription(`
+    ${getMenctionById(mostDamage.id)} - ${Math.floor(mostDamage.stats.damage / 1000)}K de dano
+    `)
+    .setColor(helper.infoColor)
+
+  const msgKDA = new MessageEmbed()
+    .setTitle(`KDA Player`)
+    .setThumbnail(utilsRiot.getImageByChampionPath(kdaPlayer.champion.path))
+    .setDescription(`
+    ${getMenctionById(kdaPlayer.id)} - ${kdaPlayer.stats.kills}/${kdaPlayer.stats.deaths}/${kdaPlayer.stats.assists}
+    `)
+    .setColor(helper.infoColor)
+
+  const msgFeeder = new MessageEmbed()
+    .setTitle(`Feeder`)
+    .setThumbnail(utilsRiot.getImageByChampionPath(feeder.champion.path))
+    .setDescription(`
+    ${getMenctionById(feeder.id)} - ${feeder.stats.deaths} mortes
+    `)
+    .setColor(helper.infoColor)
+
+  getGeralTextChannel().send(msg)
+  getGeralTextChannel().send(msgTopDamage)
+  getGeralTextChannel().send(msgKDA)
+  getGeralTextChannel().send(msgFeeder)
+  // const arrPromises = setPoints(time, queue)
+  const arrPromises = []
+  Promise.all(arrPromises).then(e => updateQueue(time))
+}
+
+async function handlePlayerInGame(response, queue) {
+  const newArrPlayers = []
+  response.participants.map(e => {
+    newArrPlayers.push(queue.players.find(p => p.summoner.id == e.summonerId))
+  })
+  await queueModel.updateOne({ status: 'Em andamento' }, { matchId: response.gameId, players: newArrPlayers })
+  const msg = new MessageEmbed()
+    .setDescription(`**Partida encontrada** 
+          Os resultados serão atualizados quando a partida terminar`)
+    .setColor(helper.okColor)
+  getGeralTextChannel().send(msg)
+}
+
+module.exports = { setWin, setJoin, setQueue, queueExists, queueEmAndamentoExists, ClearQueue, check, handleCronCheck }

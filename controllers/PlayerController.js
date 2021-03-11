@@ -1,6 +1,7 @@
 const playerModel = require('../models/Player')
 const helper = require('../helper.json')
 const { MessageEmbed } = require('discord.js')
+const {getGeralTextChannel} = require('../utils/bot')
 const utilsBot = require('../utils/bot')
 const utilsRiot = require('../utils/riot')
 const queueModel = require('../models/Queue')
@@ -19,12 +20,12 @@ async function handleRegister(message) {
     const registerUserEmbed = new MessageEmbed()
       .setDescription(`${utilsBot.getMenctionById(message.author.id)} registrado!`)
       .setColor(helper.okColor)
-    message.channel.send(registerUserEmbed)
+    getGeralTextChannel().send(registerUserEmbed)
   } else {
     const existsUserEmbed = new MessageEmbed()
       .setDescription(`${utilsBot.getMenctionById(message.author.id)} já estava previamente registrado`)
       .setColor(helper.errColor)
-    message.channel.send(existsUserEmbed)
+    getGeralTextChannel().send(existsUserEmbed)
   }
 }
 
@@ -71,7 +72,7 @@ async function versus(message, player1, player2) {
       Vitórias ${utilsBot.getMenctionById(id2)}: ${player2Wins}
       `)
     .setColor(helper.infoColor)
-  message.channel.send(msg)
+  getGeralTextChannel().send(msg)
 }
 
 async function info(message, id) {
@@ -134,7 +135,7 @@ async function info(message, id) {
     .setColor(helper.infoColor)
 
 
-  message.channel.send(msg)
+  getGeralTextChannel().send(msg)
 
 }
 
@@ -234,7 +235,7 @@ async function getPlayersRanked() {
   const players = await playerModel.find({}, ['id', 'name', 'elo'], { sort: { elo: -1 } })
   return players
 }
-async function setRanking(message) {
+async function setRanking() {
   const players = await getPlayersRanked()
   let rankDesc = '';
   players.map(async (p, i) => {
@@ -247,7 +248,7 @@ async function setRanking(message) {
     .setDescription(rankDesc)
     .setColor(helper.infoColor)
 
-  message.channel.send(rankingEmbed)
+  getGeralTextChannel().send(rankingEmbed)
 }
 
 async function punish(message) {
@@ -263,7 +264,7 @@ async function punish(message) {
           .setDescription(`${utilsBot.getMenctionById(id)} punido em ${pontos} pontos`)
           .setColor(helper.okColor)
 
-        message.channel.send(msg)
+        getGeralTextChannel().send(msg)
       }
     } else {
       const msg = new MessageEmbed()
@@ -310,20 +311,20 @@ async function registerSummoner(message) {
         .setThumbnail(getImageByName(position.tier))
         .setColor(helper.infoColor)
 
-      message.channel.send(msg)
+      getGeralTextChannel().send(msg)
     } else {
       const msg = new MessageEmbed()
         .setDescription(`${utilsBot.getMenctionById(message.author.id)}, você ainda não possui Elo nas Rankeadas essa season`)
         .setColor(helper.errColor)
 
-      message.channel.send(msg)
+      getGeralTextChannel().send(msg)
     }
   } else {
     const msg = new MessageEmbed()
       .setDescription(`Invocador "${summonerName}" não foi encontrado`)
       .setColor(helper.errColor)
 
-    message.channel.send(msg)
+    getGeralTextChannel().send(msg)
   }
 }
 

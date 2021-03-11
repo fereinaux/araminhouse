@@ -8,6 +8,7 @@ const api = axios.create({
   validateStatus: false
 });
 
+const externalApi = axios.create()
 
 
 async function searchBySummonerName(name) {
@@ -25,7 +26,7 @@ async function searchMatches(accountId, beginTime) {
   }
 }
 
-async function searchActiveMatch(summonerid){
+async function searchActiveMatch(summonerid) {
   const response = await api.get(`/lol/spectator/v4/active-games/by-summoner/${summonerid}`)
   if (response.status == 200) {
     return response.data
@@ -44,4 +45,13 @@ async function searchSummonerLeague(id) {
   return response.data
 }
 
-module.exports = { searchBySummonerName, searchMatches, searchSummonerLeague, getMatchById, searchActiveMatch }
+async function getChampions() {
+  const response = await api.get('http://ddragon.leagueoflegends.com/cdn/11.5.1/data/en_US/champion.json')
+  return response.data.data
+}
+
+function getImageByChampionPath(championPath) {
+  return `http://ddragon.leagueoflegends.com/cdn/11.5.1/img/champion/${championPath}`
+}
+
+module.exports = { searchBySummonerName, searchMatches, searchSummonerLeague, getMatchById, searchActiveMatch, getChampions, getImageByChampionPath }

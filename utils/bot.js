@@ -68,7 +68,6 @@ async function getChannels() {
 }
 
 async function setChannels() {
-  await bot.guilds.cache.first().channels;
   const channels = await getChannels();
   if (!(channels.find(e => e.name == 'Aram'))) {
     const aramHelper = helper.channels.find(e => e.name == 'Aram')
@@ -79,6 +78,10 @@ async function setChannels() {
         createChannel(ch.name, ch.options)
       })
   }
+}
+
+function getGeralTextChannel() {
+  return bot.guilds.cache.first().channels.cache.find(e => e.name == 'geral')
 }
 
 async function getQueueChannel() {
@@ -119,4 +122,19 @@ async function getNicknameByMessage(message) {
   return member && member.nickname ? member.nickname : message.author.username;
 }
 
-module.exports = { getMenctionById, setEloByPlayer, getNicknameByMessage, bot, setRoles, setChannels, SetPlayerRoleByRanking, getQueueChannel, getTeamOneChannel, getTeamTwoChannel, sendAllGeral, getEmojiByName, noPermission }
+module.exports = {
+  getMenctionById,
+  setEloByPlayer,
+  getNicknameByMessage,
+  bot,
+  setRoles,
+  setChannels,
+  SetPlayerRoleByRanking,
+  getQueueChannel,
+  getTeamOneChannel,
+  getTeamTwoChannel,
+  sendAllGeral,
+  getEmojiByName,
+  noPermission,
+  getGeralTextChannel
+}

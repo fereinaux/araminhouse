@@ -59,10 +59,7 @@ bot.on('message', async message => {
             break
           case '!summoner':
             await playerController.registerSummoner(message)
-            break
-          case '!check':
-            await queueController.check(message)
-            break
+            break       
           default:
             break;
         }
