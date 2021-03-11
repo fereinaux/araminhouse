@@ -1,4 +1,5 @@
 const { bot, setRoles, setChannels } = require('../utils/bot')
+const { MessageEmbed } = require('discord.js')
 const helper = require('../helper.json')
 const playerController = require('./PlayerController')
 const queueController = require('./QueueController')
@@ -59,8 +60,13 @@ bot.on('message', async message => {
             break
           case '!summoner':
             await playerController.registerSummoner(message)
-            break       
+            break
           default:
+            const msg = new MessageEmbed()
+              .setDescription(`Comando não existe!`)
+              .setColor(helper.errColor)
+            message.channel.send(msg)
+
             break;
         }
       }

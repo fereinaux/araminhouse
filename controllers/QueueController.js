@@ -465,4 +465,4 @@ async function handlePlayerInGame(response, queue) {
   getGeralTextChannel().send(msg)
 }
 
-module.exports = { setWin, setJoin, setQueue, queueExists, queueEmAndamentoExists, ClearQueue, check, handleCronCheck }
+module.exports = { setWin, setJoin, setQueue, queueExists, queueEmAndamentoExists, ClearQueue, handleCronCheck }
