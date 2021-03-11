@@ -341,7 +341,7 @@ async function handleQueueHasMatchId(queue, response) {
       totalPlayerScore: partcipantStats.totalPlayerScore,
       minions: partcipantStats.totalMinionsKilled,
       win: partcipantStats.win,
-      kda: (partcipantStats.stats.kills + partcipantStats.stats.assists )/(partcipantStats.stats.deaths > 0 ? partcipantStats.stats.deaths : 1)
+      kda: (partcipantStats.kills + partcipantStats.assists )/(partcipantStats.deaths > 0 ? partcipantStats.deaths : 1)
     }
     p.champion = {
       name: champion.id,
