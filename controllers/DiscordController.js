@@ -59,12 +59,7 @@ bot.on('message', async message => {
           case '!summoner':
             await playerController.registerSummoner(message)
             break
-          default:
-            const msg = new MessageEmbed()
-              .setDescription(`Comando não existe!`)
-              .setColor(helper.errColor)
-            message.channel.send(msg)
-
+          default:          
             break;
         }
       }
