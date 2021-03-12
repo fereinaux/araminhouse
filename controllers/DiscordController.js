@@ -44,9 +44,7 @@ bot.on('message', async message => {
             }
             break
           case '!info':
-            if (arrMsg.length == 2) {
-              await playerController.info(message, arrMsg[1])
-            }
+            await playerController.info(message, arrMsg[1])
             break
           case '!reset':
             await playerController.reset(message)
@@ -59,7 +57,7 @@ bot.on('message', async message => {
           case '!summoner':
             await playerController.registerSummoner(message)
             break
-          default:          
+          default:
             break;
         }
       }

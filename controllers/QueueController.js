@@ -39,7 +39,7 @@ async function setQueue(message) {
     const arrMsg = message.content.split(' ');
     if (arrMsg.length > 1) {
       let size = parseInt(arrMsg[1])
-      if (size && size < 6) {
+      if (size > 2 && size < 6) {
         createQueue(message, size)
       } else {
         const msg = new MessageEmbed()
@@ -55,13 +55,10 @@ async function setQueue(message) {
 
       getGeralTextChannel().send({ embed: queueEmbed }).then(embedMessage => {
         const reasonFilter = (reaction, user) => {
-          return ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣'].includes(reaction.emoji.name) && user.id === message.author.id;
+          return ['3⃣', '4⃣', '5⃣'].includes(reaction.emoji.name) && user.id === message.author.id;
         };
 
-
         Promise.all([
-          embedMessage.react('1⃣'),
-          embedMessage.react('2⃣'),
           embedMessage.react('3⃣'),
           embedMessage.react('4⃣'),
           embedMessage.react('5⃣'),
@@ -72,12 +69,6 @@ async function setQueue(message) {
 
             let size = 5;
             switch (reasonReaction.emoji.name) {
-              case '1⃣':
-                size = 1
-                break;
-              case '2⃣':
-                size = 2
-                break;
               case '3⃣':
                 size = 3
                 break;
@@ -263,30 +254,65 @@ async function ClearQueue() {
   }
 }
 
-function setPoints(winningTeam, queue) {
+function getPointsByQueueSize(size) {
+
+  const queueResult = helper.pointsConfig.find(x => x.size == size)
+
+  return queueResult ? {
+    win: queueResult.win,
+    loss: queueResult.loss
+  } : {
+    win: 0,
+    loss: 0
+  }
+
+}
+
+async function getStreak(id, win) {
+  return queueModel.find({ status: "Concluída" }, ['players'], { sort: { date: -1 } }).then(queueStreak => {
+    queueStreak = queueStreak.filter(x => x.players.find(y => y.id == id))
+
+    let streak = 1
+    for (let i = 1; i < queueStreak.length; i++) {
+      const queue = queueStreak[i];
+      const playerQueue = queue.players.find(y => y.id == id)
+      if (playerQueue.stats && playerQueue.stats.win == win) {
+        streak++
+      } else {
+        break
+      }
+    }
+    return streak;
+  })
+}
+
+async function setPoints(queue) {
   const arrPromises = []
+  const arrSubPromises = []
   queue.players.map(p => {
 
     const win = p.stats.win
-
-    arrPromises.push(playerModel.findOneAndUpdate({ id: p.id }, { $inc: { elo: win ? 7 : -4 } }, { new: true }).then(result => {
-      const pvtMsg = new MessageEmbed()
-        .setTitle(`Informações da Partida`)
-        .setThumbnail(utilsRiot.getImageByChampionPath(p.champion.path))
-        .setDescription(`**${win ? 'Vitória' : 'Derrota'}**
+    const queuePoints = getPointsByQueueSize(queue.size)
+    arrPromises.push(playerModel.findOneAndUpdate({ id: p.id }, { $inc: { elo: win ? queuePoints.win : - (queuePoints.loss) } }, { new: true }).then(result => {
+      arrSubPromises.push(getStreak(p.id, win).then(streak => {
+        const pvtMsg = new MessageEmbed()
+          .setTitle(`Informações da Partida`)
+          .setThumbnail(utilsRiot.getImageByChampionPath(p.champion.path))
+          .setDescription(`**${win ? 'Vitória' : 'Derrota'}**
         Dano: ${Math.floor(p.stats.damage / 1000)}K
         KDA: ${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}
         Gold: ${Math.floor(p.stats.gold / 1000)}K   
         Pontos: ${result.elo}     
+        ${win ? 'Winning' : 'Losing'} Streak: ${streak}
       `)
-        .setColor(win ? helper.okColor : helper.errColor)
+          .setColor(win ? helper.okColor : helper.errColor)
 
-      getMenctionById(p.id).send(pvtMsg)
-
+        getMenctionById(p.id).send(pvtMsg)
+      }))
     }))
   })
 
-  return arrPromises;
+  Promise.all(arrPromises).then(r1 => Promise.all(arrSubPromises).then(r2 => r2))
 }
 
 async function updateQueue(time) {
@@ -338,10 +364,9 @@ async function handleQueueHasMatchId(queue, response) {
 
       largestMultiKill: partcipantStats.largestMultiKill,
       gold: partcipantStats.goldEarned,
-      totalPlayerScore: partcipantStats.totalPlayerScore,
       minions: partcipantStats.totalMinionsKilled,
       win: partcipantStats.win,
-      kda: (partcipantStats.kills + partcipantStats.assists )/(partcipantStats.deaths > 0 ? partcipantStats.deaths : 1)
+      kda: (partcipantStats.kills + partcipantStats.assists) / (partcipantStats.deaths > 0 ? partcipantStats.deaths : 1)
     }
     p.champion = {
       name: champion.id,
@@ -390,8 +415,8 @@ async function handleQueueHasMatchId(queue, response) {
   getGeralTextChannel().send(msgTopDamage)
   getGeralTextChannel().send(msgKDA)
   getGeralTextChannel().send(msgFeeder)
-  const arrPromises = setPoints(time, queue)
-  Promise.all(arrPromises).then(e => updateQueue(time))
+  await setPoints(queue)
+  await updateQueue(time)
 }
 
 async function handlePlayerInGame(response, queue) {

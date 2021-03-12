@@ -1,7 +1,7 @@
 const playerModel = require('../models/Player')
 const helper = require('../helper.json')
 const { MessageEmbed } = require('discord.js')
-const {getGeralTextChannel} = require('../utils/bot')
+const { getGeralTextChannel } = require('../utils/bot')
 const utilsBot = require('../utils/bot')
 const utilsRiot = require('../utils/riot')
 const queueModel = require('../models/Queue')
@@ -75,8 +75,29 @@ async function versus(message, player1, player2) {
   getGeralTextChannel().send(msg)
 }
 
+async function getStreak(id) {
+  let queueStreak =await queueModel.find({ status: "Concluída" }, ['players'], { sort: { date: -1 } })
+  queueStreak = queueStreak.filter(x => x.players.find(y => y.id == id))
+
+  let streak = 1
+  const win = queueStreak[0].players.find(y => y.id == id).stats.win
+  for (let i = 1; i < queueStreak.length; i++) {
+    const queue = queueStreak[i];
+    const playerQueue = queue.players.find(y => y.id == id)
+    if (playerQueue.stats && playerQueue.stats.win == win) {
+      streak++
+    } else {
+      break
+    }
+  }
+  return {
+    win, streak
+  };
+
+}
+
 async function info(message, id) {
-  id = id.replace('<', '').replace('>', '').replace('@', '').replace('!', '')
+  id = id ? id.replace('<', '').replace('>', '').replace('@', '').replace('!', '') : message.author.id
   const player = await getPlayerById(id)
 
   const gamesquery = await queueModel.find()
@@ -111,6 +132,8 @@ async function info(message, id) {
     position = positions.find(p => p.queueType == 'RANKED_SOLO_5x5');
   }
 
+  const streak = await getStreak(id)
+
   const msg = new MessageEmbed()
     .setDescription(`
     ${getEmojiByPlayer(player, players)} **${player.name}**
@@ -119,7 +142,8 @@ async function info(message, id) {
       Vitórias: ${player1Wins}
       Derrotas: ${games.length - player1Wins}
       Punições: ${player.punicoes ? player.punicoes : 0}
-      Elo: ${player.elo}        
+      Elo: ${player.elo}   
+      ${streak.win ? 'Winning' : 'Losing'} Streak: ${streak.streak}     
       
       ${player.summoner.name && position ?
 

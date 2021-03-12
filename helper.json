@@ -17,6 +17,23 @@
   "errColor": 15158332,
   "okColor": 3066993,
   "infoColor": 3447003,
+  "pointsConfig": [
+    {
+      "size": 3,
+      "win": 3,
+      "loss": 2
+    },
+    {
+      "size": 4,
+      "win": 5,
+      "loss": 3
+    },
+    {
+      "size": 5,
+      "win": 7,
+      "loss": 4
+    }
+  ],
   "roles": [
     {
       "name": "6 - Top 1",
@@ -46,7 +63,7 @@
       "name": "1 - Bronze",
       "color": "#a76f2a",
       "pontos": 10
-    }                 
+    }
   ],
   "channels": [
     {
