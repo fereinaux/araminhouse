@@ -82,7 +82,7 @@ async function getStreak(id) {
   queueStreak = queueStreak.filter(x => x.players.find(y => y && y.id == id))
 
   let streak = 1
-  if (queueStreak[0].players.find(y => y.id == id).stats) {
+  if (queueStreak.length > 0 && queueStreak[0].players.find(y => y.id == id).stats) {
 
     const win = queueStreak[0].players.find(y => y.id == id).stats.win
     for (let i = 1; i < queueStreak.length; i++) {
