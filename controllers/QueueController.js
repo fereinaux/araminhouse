@@ -110,8 +110,8 @@ async function setJoin(message) {
       let players = queueJoinExists.players;
       if (players.find(el => el.id == message.authorID)) {
         const playerDuplicated = new MessageEmbed()
-        .setDescription(`${getMenctionById(message.author.id)} já está na Queue`)
-        .setColor(helper.errColor)
+          .setDescription(`${getMenctionById(message.author.id)} já está na Queue`)
+          .setColor(helper.errColor)
         getGeralTextChannel().send(playerDuplicated)
       } else {
         const player = await playerModel.findOne({ id: message.authorID })
@@ -221,7 +221,7 @@ async function setJoin(message) {
           }))
 
         } else {
-          const queueChannel = await getQueueChannel()          
+          const queueChannel = await getQueueChannel()
           if (helper.splitTeams)
             message.member.voice.setChannel(queueChannel)
           const playerQueue = new MessageEmbed()
@@ -360,8 +360,9 @@ async function handleQueueHasMatchId(queue, response) {
       kills: partcipantStats.kills,
       deaths: partcipantStats.deaths,
       assists: partcipantStats.assists,
+      killParticipation: partcipantStats.kills + partcipantStats.assists,
       damage: partcipantStats.totalDamageDealtToChampions,
-
+      damageDealtToObjectives: partcipantStats.damageDealtToObjectives,
       largestMultiKill: partcipantStats.largestMultiKill,
       gold: partcipantStats.goldEarned,
       minions: partcipantStats.totalMinionsKilled,
@@ -376,7 +377,9 @@ async function handleQueueHasMatchId(queue, response) {
 
   await queueModel.findOneAndUpdate({ status: 'Em andamento' }, queue)
   const mostDamage = queue.players.sort((a, b) => b.stats.damage - a.stats.damage)[0];
-  const kdaPlayer = queue.players.sort((a, b) => b.kda - a.kda)[0];
+  const kdaPlayer = queue.players.sort(function (a, b) {
+    return b.stats.kda - a.stats.kda;
+  })[0];
   const feeder = queue.players.sort((a, b) => b.stats.deaths - a.stats.deaths)[0];
 
   const time = response.teams[0].win == 'Win' ? 1 : 2
