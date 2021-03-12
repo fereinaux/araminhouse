@@ -7,14 +7,21 @@ const utilsRiot = require('../utils/riot')
 const queueModel = require('../models/Queue')
 
 async function handleRegister(member) {
-  const existsRegister =  await getPlayerById(member.user.id)
+  const existsRegister = await getPlayerById(member.user.id)
   if (!(existsRegister)) {
     const player = { name: member.user.username, id: member.user.id, elo: 0, punicoes: 0 }
     playerModel.create(player)
     utilsBot.setEloByPlayer(player)
+    const msgWelcome = new MessageEmbed()
+      .setDescription(`Bem-Vindo, ${utilsBot.getMenctionById(member.user.id)}.
+      
+      Digite o seu nome de Invocador para que possamos manter nossas estatísticas atualizadas
+
+      `)
     const registerUserEmbed = new MessageEmbed()
       .setDescription(`${utilsBot.getMenctionById(member.user.id)} registrado!`)
       .setColor(helper.okColor)
+    member.send(msgWelcome)
     getGeralTextChannel().send(registerUserEmbed)
   } else {
     const existsUserEmbed = new MessageEmbed()
@@ -71,7 +78,7 @@ async function versus(message, player1, player2) {
 }
 
 async function getStreak(id) {
-  let queueStreak =await queueModel.find({ status: "Concluída" }, ['players'], { sort: { date: -1 } })
+  let queueStreak = await queueModel.find({ status: "Concluída" }, ['players'], { sort: { date: -1 } })
   queueStreak = queueStreak.filter(x => x.players.find(y => y && y.id == id))
 
   let streak = 1
@@ -153,9 +160,10 @@ async function info(message, id) {
       `)
     .setColor(helper.infoColor)
 
-
-  getGeralTextChannel().send(msg)
-
+  if (!utilsBot.checkDM(message))
+    getGeralTextChannel().send(msg)
+  else
+    utilsBot.getMenctionById(message.author.id).send(msg)
 }
 
 function getImageByName(name) {
@@ -312,8 +320,12 @@ async function registerSummoner(message) {
   const summonerName = message.content.split('"')[1]
   const id = message.content.split(' ')[1].replace('<', '').replace('>', '').replace('@', '').replace('!', '')
 
-  const summoner = await utilsRiot.searchBySummonerName(summonerName)
+  handleRegisterSummoner(id,message,summonerName)
+}
 
+async function handleRegisterSummoner(id,message,summonerName) {
+  const summoner = await utilsRiot.searchBySummonerName(summonerName)
+  const whoTo = utilsBot.checkDM(message) ? utilsBot.getMenctionById(message.author.id) : getGeralTextChannel()
   if (summoner) {
     await playerModel.findOneAndUpdate({ id: id }, { summoner: { name: summoner.name, id: summoner.id, accountId: summoner.accountId } })
     const positions = await utilsRiot.searchSummonerLeague(summoner.id);
@@ -330,21 +342,30 @@ async function registerSummoner(message) {
         .setThumbnail(getImageByName(position.tier))
         .setColor(helper.infoColor)
 
-      getGeralTextChannel().send(msg)
+        whoTo.send(msg)
     } else {
       const msg = new MessageEmbed()
         .setDescription(`${utilsBot.getMenctionById(message.author.id)}, você ainda não possui Elo nas Rankeadas essa season`)
         .setColor(helper.errColor)
 
-      getGeralTextChannel().send(msg)
+        whoTo.send(msg)
     }
   } else {
     const msg = new MessageEmbed()
       .setDescription(`Invocador "${summonerName}" não foi encontrado`)
       .setColor(helper.errColor)
 
-    getGeralTextChannel().send(msg)
+      whoTo.send(msg)
   }
 }
 
-module.exports = { setRanking, getPlayerById, handleRegister, versus, info, punish, reset, registerSummoner }
+async function handleSummoner(message) {
+  const player = await playerModel.findOne({ id:message.author.id  })
+  
+  if (!player.summoner.id) {
+    handleRegisterSummoner(message.author.id,message,message.content)
+
+  }
+}
+
+module.exports = { setRanking, getPlayerById, handleRegister, versus, info, punish, reset, registerSummoner, handleSummoner }

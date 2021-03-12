@@ -2,6 +2,10 @@ const Discord = require('discord.js')
 const bot = new Discord.Client()
 const helper = require('../helper.json')
 
+function checkDM(message){
+  return message.channel.type == 'dm'
+}
+
 function getMenctionById(id) {
   return bot.guilds.cache.first().members.cache.find(e => e.id == id)
 }
@@ -136,5 +140,6 @@ module.exports = {
   sendAllGeral,
   getEmojiByName,
   noPermission,
-  getGeralTextChannel
+  getGeralTextChannel,
+  checkDM
 }
