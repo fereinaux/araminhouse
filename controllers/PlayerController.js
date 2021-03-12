@@ -77,7 +77,7 @@ async function versus(message, player1, player2) {
 
 async function getStreak(id) {
   let queueStreak =await queueModel.find({ status: "Concluída" }, ['players'], { sort: { date: -1 } })
-  queueStreak = queueStreak.filter(x => x.players.find(y => y.id == id))
+  queueStreak = queueStreak.filter(x => x.players.find(y => y && y.id == id))
 
   let streak = 1
   const win = queueStreak[0].players.find(y => y.id == id).stats.win
