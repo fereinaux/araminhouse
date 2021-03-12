@@ -82,19 +82,26 @@ async function getStreak(id) {
   queueStreak = queueStreak.filter(x => x.players.find(y => y && y.id == id))
 
   let streak = 1
-  const win = queueStreak[0].players.find(y => y.id == id).stats.win
-  for (let i = 1; i < queueStreak.length; i++) {
-    const queue = queueStreak[i];
-    const playerQueue = queue.players.find(y => y.id == id)
-    if (playerQueue.stats && playerQueue.stats.win == win) {
-      streak++
-    } else {
-      break
+  if (queueStreak[0].players.find(y => y.id == id).stats) {
+
+    const win = queueStreak[0].players.find(y => y.id == id).stats.win
+    for (let i = 1; i < queueStreak.length; i++) {
+      const queue = queueStreak[i];
+      const playerQueue = queue.players.find(y => y.id == id)
+      if (playerQueue.stats && playerQueue.stats.win == win) {
+        streak++
+      } else {
+        break
+      }
     }
-  }
-  return {
-    win, streak
-  };
+    return {
+      win, streak
+    };
+  } else
+    return {
+      win: true, streak: 0
+    }
+
 
 }
 
@@ -320,10 +327,10 @@ async function registerSummoner(message) {
   const summonerName = message.content.split('"')[1]
   const id = message.content.split(' ')[1].replace('<', '').replace('>', '').replace('@', '').replace('!', '')
 
-  handleRegisterSummoner(id,message,summonerName)
+  handleRegisterSummoner(id, message, summonerName)
 }
 
-async function handleRegisterSummoner(id,message,summonerName) {
+async function handleRegisterSummoner(id, message, summonerName) {
   const summoner = await utilsRiot.searchBySummonerName(summonerName)
   const whoTo = utilsBot.checkDM(message) ? utilsBot.getMenctionById(message.author.id) : getGeralTextChannel()
   if (summoner) {
@@ -342,28 +349,28 @@ async function handleRegisterSummoner(id,message,summonerName) {
         .setThumbnail(getImageByName(position.tier))
         .setColor(helper.infoColor)
 
-        whoTo.send(msg)
+      whoTo.send(msg)
     } else {
       const msg = new MessageEmbed()
         .setDescription(`${utilsBot.getMenctionById(message.author.id)}, você ainda não possui Elo nas Rankeadas essa season`)
         .setColor(helper.errColor)
 
-        whoTo.send(msg)
+      whoTo.send(msg)
     }
   } else {
     const msg = new MessageEmbed()
       .setDescription(`Invocador "${summonerName}" não foi encontrado`)
       .setColor(helper.errColor)
 
-      whoTo.send(msg)
+    whoTo.send(msg)
   }
 }
 
 async function handleSummoner(message) {
-  const player = await playerModel.findOne({ id:message.author.id  })
-  
+  const player = await playerModel.findOne({ id: message.author.id })
+
   if (!player.summoner.id) {
-    handleRegisterSummoner(message.author.id,message,message.content)
+    handleRegisterSummoner(message.author.id, message, message.content)
 
   }
 }
