@@ -108,14 +108,14 @@ async function setJoin(message) {
   } else {
     if (queueJoinExists.players.length < (queueJoinExists.size * 2)) {
       let players = queueJoinExists.players;
-      if (players.find(el => el.id == message.author.id)) {
+      if (players.find(el => el.id == message.authorID)) {
         const playerDuplicated = new MessageEmbed()
-          .setDescription(`${getMenctionById(message.author.id)} já está na Queue`)
-          .setColor(helper.errColor)
+        .setDescription(`${getMenctionById(message.author.id)} já está na Queue`)
+        .setColor(helper.errColor)
         getGeralTextChannel().send(playerDuplicated)
       } else {
-        const player = await playerModel.findOne({ id: message.author.id })
-        players.push({ name: message.author.username, id: message.author.id, summoner: player.summoner })
+        const player = await playerModel.findOne({ id: message.authorID })
+        players.push({ name: player.name, id: message.authorID, summoner: player.summoner })
         await queueModel.updateOne({ status: 'aberta' }, { players: players }, { new: true })
 
         if (queueJoinExists.players.length == (queueJoinExists.size * 2)) {
@@ -221,11 +221,11 @@ async function setJoin(message) {
           }))
 
         } else {
-          const queueChannel = await getQueueChannel()
+          const queueChannel = await getQueueChannel()          
           if (helper.splitTeams)
             message.member.voice.setChannel(queueChannel)
           const playerQueue = new MessageEmbed()
-            .setDescription(`**${getMenctionById(message.author.id)} entrou na Queue**
+            .setDescription(`**${getMenctionById(message.authorID)} entrou na Queue**
             **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)
             .setColor(helper.okColor)
           getGeralTextChannel().send(playerQueue)

@@ -6,24 +6,19 @@ const utilsBot = require('../utils/bot')
 const utilsRiot = require('../utils/riot')
 const queueModel = require('../models/Queue')
 
-async function playerExists(message) {
-  const playerExists = await getPlayerById(message.author.id)
-  return playerExists || message.author.bot;
-}
-
-async function handleRegister(message) {
-  const existsRegister = await playerExists(message);
+async function handleRegister(member) {
+  const existsRegister =  await getPlayerById(member.user.id)
   if (!(existsRegister)) {
-    const player = { name: message.author.username, id: message.author.id, elo: 0, punicoes: 0 }
+    const player = { name: member.user.username, id: member.user.id, elo: 0, punicoes: 0 }
     playerModel.create(player)
     utilsBot.setEloByPlayer(player)
     const registerUserEmbed = new MessageEmbed()
-      .setDescription(`${utilsBot.getMenctionById(message.author.id)} registrado!`)
+      .setDescription(`${utilsBot.getMenctionById(member.user.id)} registrado!`)
       .setColor(helper.okColor)
     getGeralTextChannel().send(registerUserEmbed)
   } else {
     const existsUserEmbed = new MessageEmbed()
-      .setDescription(`${utilsBot.getMenctionById(message.author.id)} já estava previamente registrado`)
+      .setDescription(`${utilsBot.getMenctionById(member.user.id)} já estava previamente registrado`)
       .setColor(helper.errColor)
     getGeralTextChannel().send(existsUserEmbed)
   }
@@ -352,4 +347,4 @@ async function registerSummoner(message) {
   }
 }
 
-module.exports = { setRanking, getPlayerById, handleRegister, playerExists, versus, info, punish, reset, registerSummoner }
+module.exports = { setRanking, getPlayerById, handleRegister, versus, info, punish, reset, registerSummoner }
