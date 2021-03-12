@@ -4,6 +4,8 @@ const helper = require('../helper.json')
 const connections = require('../connections.json')
 const playerController = require('./PlayerController')
 const queueController = require('./QueueController')
+const Bull = require("bull");
+const Queue = new Bull("Queue", { redis: { port: connections.redisPort, host: connections.redisHost, password: connections.redisPswd } });
 
 bot.on('ready', async function () {
   await bot.guilds.cache.first().members.fetch({ cache: true })
@@ -13,57 +15,54 @@ bot.on('ready', async function () {
 
 bot.on('message', async message => {
   if (helper.comandos.find(element => message.content)) {
-    if (message.content === '!register') {
-      playerController.handleRegister(message)
-    } else {
-      const registered = await playerController.playerExists(message);
-      if (!(registered)) {
-        const notRegisteredEmbed = new Discord.MessageEmbed()
-          .setDescription(`**${getMenctionById(message.author.id)} não registrado**
-          Registre-se como o comando !register`)
-          .setColor(helper.errColor)
-        message.channel.send(notRegisteredEmbed)
-      } else {
-        const arrMsg = message.content.split(' ')
-        switch (arrMsg[0]) {
-          case '!queue':
-            await queueController.setQueue(message)
-            break;
-          case '!join':
-            await queueController.setJoin(message)
-            break;
-          case '!ranking':
-            await playerController.setRanking()
-            break;
-          case '!clearqueue':
-            await queueController.ClearQueue()
-            break
-          case '!versus':
-            if (arrMsg.length == 3) {
-              await playerController.versus(message, arrMsg[1], arrMsg[2])
-            }
-            break
-          case '!info':
-            await playerController.info(message, arrMsg[1])
-            break
-          case '!reset':
-            await playerController.reset(message)
-            break
-          case '!punish':
-            if (arrMsg.length == 3) {
-              await playerController.punish(message)
-            }
-            break
-          case '!summoner':
-            await playerController.registerSummoner(message)
-            break
-          default:
-            break;
-        }
-      }
+      const arrMsg = message.content.split(' ')
+      switch (arrMsg[0]) {
+        case '!queue':
+          await queueController.setQueue(message)
+          break;
+        case '!join':
+          Queue.add(message);
+          break;
+        case '!ranking':
+          await playerController.setRanking()
+          break;
+        case '!clearqueue':
+          await queueController.ClearQueue()
+          break
+        case '!versus':
+          if (arrMsg.length == 3) {
+            await playerController.versus(message, arrMsg[1], arrMsg[2])
+          }
+          break
+        case '!info':
+          await playerController.info(message, arrMsg[1])
+          break
+        case '!reset':
+          await playerController.reset(message)
+          break
+        case '!punish':
+          if (arrMsg.length == 3) {
+            await playerController.punish(message)
+          }
+          break
+        case '!summoner':
+          await playerController.registerSummoner(message)
+          break
+        default:
+          break;
+
+      
     }
 
   }
 })
+
+bot.on('guildMemberAdd', member => {  
+  playerController.handleRegister(member)
+});
+
+Queue.process(async (job) => {
+  return await queueController.setJoin(job.data)
+});
 
 bot.login(connections.token);
