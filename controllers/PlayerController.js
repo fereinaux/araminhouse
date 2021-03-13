@@ -5,6 +5,7 @@ const { getGeralTextChannel } = require('../utils/bot')
 const utilsBot = require('../utils/bot')
 const utilsRiot = require('../utils/riot')
 const queueModel = require('../models/Queue')
+const moment = require('moment')
 
 async function handleRegister(member) {
   const existsRegister = await getPlayerById(member.user.id)
@@ -80,6 +81,13 @@ async function versus(message, player1, player2) {
   getGeralTextChannel().send(msg)
 }
 
+async function getLastQueue(id) {
+  let queues = await queueModel.find({ status: "Concluída" }, ['players'], { sort: { date: -1 } })
+  queues = queues.filter(x => x.players.find(y => y && y.id == id))
+  return queues[0]
+}
+
+
 async function getStreak(id) {
   let queueStreak = await queueModel.find({ status: "Concluída" }, ['players'], { sort: { date: -1 } })
   queueStreak = queueStreak.filter(x => x.players.find(y => y && y.id == id))
@@ -146,6 +154,7 @@ async function info(message, id) {
   }
 
   const streak = await getStreak(id)
+  const lastQueue = await getLastQueue(id)
 
   const msg = new MessageEmbed()
     .setDescription(`
@@ -156,8 +165,9 @@ async function info(message, id) {
       Derrotas: ${games.length - player1Wins}
       Punições: ${player.punicoes ? player.punicoes : 0}
       Rating: ${player.elo}   
-      Maior Rating: ${player.maxElo}   
+      Maior Rating: ${player.maxElo ? player.maxElo : 0}   
       ${streak.win ? 'Winning' : 'Losing'} Streak: ${streak.streak}     
+      ${lastQueue ? `Última Partida: ${moment(lastQueue.date).format('DD/MM/YYYY HH:mm')}` : ''}
       
       ${player.summoner.name && position ?
 

@@ -1,4 +1,5 @@
 const queueModel = require('../models/Queue')
+const moment = require('moment')
 const helper = require('../helper.json')
 const {
   getQueueChannel,
@@ -190,7 +191,7 @@ async function setJoin(message) {
             .setColor(helper.okColor)
           getGeralTextChannel().send(teamEmbed)
 
-        } else {          
+        } else {
           const playerQueue = new MessageEmbed()
             .setDescription(`**${getMenctionById(message.authorID)} entrou na Queue**
             **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)
@@ -325,6 +326,7 @@ async function setPoints(queue) {
       .setTitle(`Informações da Partida`)
       .setThumbnail(utilsRiot.getImageByChampionPath(p.champion.path))
       .setDescription(`**${win ? 'Vitória' : 'Derrota'}**
+        Data da Partida: ${moment(new Date()).format('DD/MM/YYYY HH:mm')}
         Dano: ${Math.floor(p.stats.damage / 1000)}K
         KDA: ${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}
         Gold: ${Math.floor(p.stats.gold / 1000)}K
