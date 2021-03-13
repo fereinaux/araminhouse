@@ -53,14 +53,9 @@ async function versus(message, player1, player2) {
   let player2Wins = 0
 
   games.map(game => {
-    if (game.winningTeam == 1) {
-      if (game.players.find(player => player.id == id1).stats.win) {
-        player1Wins++
-      } else {
-        player2Wins++
-      }
-    } else {
-      if (game.players.find(player => player.id == id1).stats.win) {
+    const playingGame = game.players.find(player => player && player.id == id1)
+    if (playingGame) {
+      if (playingGame.stats && playingGame.stats.win) {
         player1Wins++
       } else {
         player2Wins++
@@ -132,18 +127,18 @@ async function info(message, id) {
   const image = getImageByPlayers(player, players)
 
   let player1Wins = 0
+  let player1Losses = 0
 
   games.map(game => {
-    if (game.winningTeam == 1) {
-      if (game.teamOne.find(player => player.id == id)) {
+    const playingGame = game.players.find(player => player && player.id == id)
+    if (playingGame) {
+      if (playingGame.stats && playingGame.stats.win) {
         player1Wins++
-      }
-    } else {
-      if (game.teamTwo.find(player => player.id == id)) {
-        player1Wins++
+      } else if (playingGame.stats && !playingGame.stats.win) {
+        player1Losses++
       }
     }
-  })
+  }) 
 
   let position;
 
@@ -161,7 +156,7 @@ async function info(message, id) {
 
       Jogos: ${games.length}
       Vitórias: ${player1Wins}
-      Derrotas: ${games.length - player1Wins}
+      Derrotas: ${player1Losses}
       Punições: ${player.punicoes ? player.punicoes : 0}
       Rating: ${player.elo}   
       Maior Rating: ${player.maxElo ? player.maxElo : 0}   
@@ -355,7 +350,7 @@ async function registerSummoner(message) {
   }
 }
 
-async function handleRegisterSummoner(id, message, summonerName,newRegister) {
+async function handleRegisterSummoner(id, message, summonerName, newRegister) {
   const summoner = await utilsRiot.searchBySummonerName(summonerName)
   const whoTo = utilsBot.checkDM(message) ? utilsBot.getMenctionById(message.author.id) : getGeralTextChannel()
   if (summoner) {
@@ -453,4 +448,4 @@ async function handleSummoner(message) {
   }
 }
 
-module.exports = { setRanking,handleRegisterSummoner, getPlayerById, handleRegister, handleCommands, versus, info, punish, reset, registerSummoner, handleSummoner }
+module.exports = { setRanking, handleRegisterSummoner, getPlayerById, handleRegister, handleCommands, versus, info, punish, reset, registerSummoner, handleSummoner }
