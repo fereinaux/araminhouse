@@ -54,13 +54,13 @@ async function versus(message, player1, player2) {
 
   games.map(game => {
     if (game.winningTeam == 1) {
-      if (game.teamOne.find(player => player.id == id1)) {
+      if (game.players.find(player => player.id == id1).stats.win) {
         player1Wins++
       } else {
         player2Wins++
       }
     } else {
-      if (game.teamTwo.find(player => player.id == id1)) {
+      if (game.players.find(player => player.id == id1).stats.win) {
         player1Wins++
       } else {
         player2Wins++
@@ -86,7 +86,6 @@ async function getLastQueue(id) {
   queues = queues.filter(x => x.players.find(y => y && y.id == id))
   return queues[0]
 }
-
 
 async function getStreak(id) {
   let queueStreak = await queueModel.find({ status: "Concluída" }, ['players'], { sort: { date: -1 } })
