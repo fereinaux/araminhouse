@@ -6,6 +6,10 @@ function checkDM(message){
   return message.channel.type == 'dm' && !message.author.bot
 }
 
+function isAdm(member){
+  return member.hasPermission("ADMINISTRATOR")
+}
+
 function getMenctionById(id) {
   return bot.guilds.cache.first().members.cache.find(e => e.id == id)
 }
@@ -133,6 +137,7 @@ module.exports = {
   setEloByPlayer,
   getNicknameByMessage,
   bot,
+  isAdm,
   setRoles,
   setChannels,
   SetPlayerRoleByRanking,

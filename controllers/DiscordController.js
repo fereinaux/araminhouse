@@ -34,7 +34,7 @@ bot.on('message', async message => {
         await playerController.setRanking()
         break;
       case '!clearqueue':
-        await queueController.ClearQueue()
+        await queueController.clearQueue(message)
         break
       case '!versus':
         if (arrMsg.length == 3) {

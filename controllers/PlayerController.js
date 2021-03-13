@@ -287,7 +287,7 @@ async function setRanking() {
 }
 
 async function punish(message) {
-  if (message.member.hasPermission("ADMINISTRATOR")) {
+  if (utilsBot.isAdm(message.member)) {
     const arrMsg = message.content.split(' ');
     if (arrMsg.length > 1) {
       let pontos = parseInt(arrMsg[2])
@@ -313,7 +313,7 @@ async function punish(message) {
 }
 
 async function reset(message) {
-  if (message.member.hasPermission("ADMINISTRATOR")) {
+  if (utilsBot.isAdm(message.member)) {
     const players = await playerModel.find()
     let arrPromises = []
     queueModel.remove()

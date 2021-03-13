@@ -2,6 +2,7 @@ const queueModel = require('../models/Queue')
 const helper = require('../helper.json')
 const {
   getQueueChannel,
+  isAdm,
   getMenctionById,
   getTeamOneChannel,
   getTeamTwoChannel,
@@ -101,6 +102,55 @@ async function msgQueueNotExists() {
   getGeralTextChannel().send(queueDoesntExists)
 }
 
+async function getArrElo(teamOne, teamTwo) {
+  const arrElo = []
+  for (const [idx, p] of teamOne.entries()) {
+    await pushArrElo(p, arrElo)
+  }
+
+  for (const [idx, p] of teamTwo.entries()) {
+    await pushArrElo(p, arrElo)
+  }
+
+  return arrElo
+}
+
+async function pushArrElo(p, arrElo) {
+  const pm = await playerModel.findOne({ id: p.id })
+  if (pm.summoner && pm.summoner.id) {
+    const result = await utilsRiot.searchSummonerLeague(pm.summoner.id)
+    const position = result.find(r => r.queueType == 'RANKED_SOLO_5x5')
+    if (position) {
+
+      arrElo.push({
+
+        id: pm.id,
+        summonerName: pm.summoner.name,
+        rank: position.rank,
+        tier: position.tier,
+        wins: position.wins,
+        losses: position.losses
+      })
+    }
+  }
+}
+
+function getElo(player, arrElo) {
+  const elo = arrElo.find(a => a.id == player.id)
+  if (elo) {
+    return `- ${elo.summonerName} ${getEmojiByName(elo.tier.toLowerCase())} ${elo.tier.substr(0, 1)}${elo.tier.substr(1, 100).toLowerCase()} ${elo.rank}  W:${elo.wins}  L:${elo.losses}`
+  } else {
+    return ''
+  }
+}
+
+function mapTeam(team, arrElo) {
+  return decodeURI(team.map(player => {
+    const member = getMenctionById(player.id)
+    return `${member} ${getElo(player, arrElo)}`
+  }).join('%0D%0A'))
+}
+
 async function setJoin(message) {
   const queueJoinExists = await queueExists();
   if (!queueJoinExists)
@@ -116,74 +166,23 @@ async function setJoin(message) {
       } else {
         const player = await playerModel.findOne({ id: message.authorID })
         players.push({ name: player.name, id: message.authorID, summoner: player.summoner })
-        const updatedQueue = await queueModel.updateOne({ status: 'aberta' }, { players: players }, { new: true })
+        await queueModel.updateOne({ status: 'aberta' }, { players: players }, { new: true })
         if (queueJoinExists.players.length == (queueJoinExists.size * 2)) {
           const randomPlayers = queueJoinExists.players.sort(() => Math.random() - 0.5)
           const teamOne = randomPlayers.slice(0, queueJoinExists.size)
           const teamTwo = randomPlayers.slice(queueJoinExists.size, queueJoinExists.size * 2)
 
-          const arrElo = []
-
-          async function pushArrElo(p) {
-            const pm = await playerModel.findOne({ id: p.id })
-            if (pm.summoner && pm.summoner.id) {
-              const result = await utilsRiot.searchSummonerLeague(pm.summoner.id)
-              const position = result.find(r => r.queueType == 'RANKED_SOLO_5x5')
-              if (position) {
-
-                arrElo.push({
-
-                  id: pm.id,
-                  summonerName: pm.summoner.name,
-                  rank: position.rank,
-                  tier: position.tier,
-                  wins: position.wins,
-                  losses: position.losses
-                })
-              }
-            }
-          }
-
-          for (const [idx, p] of teamOne.entries()) {
-            await pushArrElo(p)
-          }
-
-          for (const [idx, p] of teamTwo.entries()) {
-            await pushArrElo(p)
-          }
-
-          function getElo(player) {
-            const elo = arrElo.find(a => a.id == player.id)
-            if (elo) {
-              return `- ${elo.summonerName} ${getEmojiByName(elo.tier.toLowerCase())} ${elo.tier.substr(0, 1)}${elo.tier.substr(1, 100).toLowerCase()} ${elo.rank}  W:${elo.wins}  L:${elo.losses}`
-            } else {
-              return ''
-            }
-
-          }
+          const arrElo = await getArrElo(teamOne, teamTwo)
 
           await queueModel.updateOne({ status: 'aberta' }, { status: 'Em andamento', teamOne: teamOne, teamTwo: teamTwo })
           const teamsDescription = `
             **Time 1**
             
-            ${decodeURI(teamOne.map(player => {
-            const member = getMenctionById(player.id)
-            if (helper.splitTeams) {
-              member.voice.setChannel(teamOneChannel)
-            }
-            return `${member} ${getElo(player)}`
-          }).join('%0D%0A'))}
+            ${mapTeam(teamOne, arrElo)}                
             
             **Time 2**
   
-            ${decodeURI(teamTwo.map(player => {
-            const member = getMenctionById(player.id)
-            if (helper.splitTeams) {
-              member.voice.setChannel(teamTwoChannel)
-            }
-            return `${member} ${getElo(player)}`
-          }).join('%0D%0A'))}
-            `;
+            ${mapTeam(teamTwo, arrElo)}`;
 
           const teamEmbed = new MessageEmbed()
             .setTitle(`Queue fechada`)
@@ -193,8 +192,6 @@ async function setJoin(message) {
 
         } else {
           const queueChannel = await getQueueChannel()
-          if (helper.splitTeams)
-            message.member.voice.setChannel(queueChannel)
           const playerQueue = new MessageEmbed()
             .setDescription(`**${getMenctionById(message.authorID)} entrou na Queue**
             **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)
@@ -211,16 +208,26 @@ async function setJoin(message) {
   }
 }
 
-async function ClearQueue() {
+async function clearQueue(message) {
   const queue = await queueExists();
-  if (queue) {
-    await queueModel.updateOne({ $or: [{ status: 'aberta' }, { status: 'Em andamento' }] }, { status: 'Canelada' });
-    const msg = new MessageEmbed()
-      .setTitle(`Queue cancelada!`)
-      .setColor(helper.errColor)
-
-    getGeralTextChannel().send(msg)
-  } else {
+  const msgCancelada = new MessageEmbed()
+    .setTitle(`Queue cancelada!`)
+    .setColor(helper.errColor)
+  if (queue.status == 'aberta') {
+    await queueModel.updateOne({ status: 'aberta' }, { status: 'Canelada' });
+    getGeralTextChannel().send(msgCancelada)
+  } else if (queue.status == 'Em andamento') {
+    if (isAdm(message.member)) {
+      await queueModel.updateOne({ status: 'Em andamento' }, { status: 'Canelada' });
+      getGeralTextChannel().send(msgCancelada)
+    } else {
+      const msgAdm = new MessageEmbed()
+        .setTitle(`Apenas administradores podem cancelar uma queue depois que ela é formada!`)
+        .setColor(helper.errColor)
+      getGeralTextChannel().send(msgAdm)
+    }
+  }
+  else {
     msgQueueNotExists()
   }
 }
@@ -390,4 +397,4 @@ async function handlePlayerInGame(response, queue) {
   getGeralTextChannel().send(msg)
 }
 
-module.exports = { setJoin, setQueue, queueExists, queueEmAndamentoExists, ClearQueue, handleCronCheck }
+module.exports = { setJoin, setQueue, queueExists, queueEmAndamentoExists, clearQueue, handleCronCheck }
