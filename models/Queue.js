@@ -3,7 +3,6 @@ const { mongoose, Schema } = require('../mongo')
 const queueSchema = new Schema({
   status: String,
   size: Number,
-  winningTeam: Number,
   players: Array,
   teamOne: Array,
   teamTwo: Array,

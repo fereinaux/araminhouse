@@ -3,7 +3,7 @@ const bot = new Discord.Client()
 const helper = require('../helper.json')
 
 function checkDM(message){
-  return message.channel.type == 'dm'
+  return message.channel.type == 'dm' && !message.author.bot
 }
 
 function getMenctionById(id) {
@@ -117,8 +117,10 @@ function getMemberById(id) {
 
 function setEloByPlayer(player) {
   const member = getMemberById(player.id);
-
-  member.setNickname(`[${player.elo}]${member.user.username}`);
+  
+  if (!member.hasPermission("ADMINISTRATOR")) {        
+    member.setNickname(`[${player.elo}]${member.user.username}`);
+  }
 }
 
 async function getNicknameByMessage(message) {

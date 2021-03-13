@@ -5,7 +5,14 @@ const connections = require('../connections.json')
 const playerController = require('./PlayerController')
 const queueController = require('./QueueController')
 const Bull = require("bull");
-const Queue = new Bull("Queue", { redis: { port: connections.redisPort, host: connections.redisHost, password: connections.redisPswd } });
+const Queue = new Bull("Queue", {
+  redis:
+  {
+    port: connections.redisPort,
+    host: connections.redisHost,
+    password: connections.redisPswd
+  }
+});
 
 bot.on('ready', async function () {
   await bot.guilds.cache.first().members.fetch({ cache: true })
@@ -50,10 +57,7 @@ bot.on('message', async message => {
         break
       default:
         break;
-
-
     }
-
   } else {
     const arrMsg = message.content.split(' ')
     switch (arrMsg[0]) {

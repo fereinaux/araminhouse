@@ -110,6 +110,7 @@ async function info(message, id) {
   const player = await getPlayerById(id)
 
   const gamesquery = await queueModel.find()
+
   const games = gamesquery.filter(
     x =>
       (x.teamOne.find(y => y.id == id)) ||
@@ -369,7 +370,7 @@ async function handleRegisterSummoner(id, message, summonerName) {
 async function handleSummoner(message) {
   const player = await playerModel.findOne({ id: message.author.id })
 
-  if (!player.summoner.id) {
+  if (player && !player.summoner.id) {
     handleRegisterSummoner(message.author.id, message, message.content)
 
   }
