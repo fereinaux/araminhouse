@@ -2,6 +2,7 @@ const { mongoose, Schema } = require('../mongo')
 
 const queueSchema = new Schema({
   status: String,
+  ownerId: String,
   size: Number,
   players: Array,
   teamOne: Array,

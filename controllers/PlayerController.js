@@ -9,19 +9,22 @@ const queueModel = require('../models/Queue')
 async function handleRegister(member) {
   const existsRegister = await getPlayerById(member.user.id)
   if (!(existsRegister)) {
-    const player = { name: member.user.username, id: member.user.id, elo: 0, punicoes: 0 }
+    const player = { name: member.user.username, id: member.user.id, elo: 0, maxElo: 0, punicoes: 0 }
     playerModel.create(player)
     utilsBot.setEloByPlayer(player)
     const msgWelcome = new MessageEmbed()
       .setDescription(`Bem-Vindo, ${utilsBot.getMenctionById(member.user.id)}.
       
-      Digite o seu nome de Invocador para que possamos manter nossas estatísticas atualizadas
+      Eu sou o Bot do Aram Inhouse, e vou te ajudar a ficar por dentro de como funciona o nosso servidor
+
+      Para começar, digite o seu nome de Invocador para que possamos manter nossas estatísticas atualizadas
 
       `)
     const registerUserEmbed = new MessageEmbed()
       .setDescription(`${utilsBot.getMenctionById(member.user.id)} registrado!`)
       .setColor(helper.okColor)
     member.send(msgWelcome)
+    utilsBot.setRegisteredRole(member)
     getGeralTextChannel().send(registerUserEmbed)
   } else {
     const existsUserEmbed = new MessageEmbed()
@@ -152,7 +155,8 @@ async function info(message, id) {
       Vitórias: ${player1Wins}
       Derrotas: ${games.length - player1Wins}
       Punições: ${player.punicoes ? player.punicoes : 0}
-      Elo: ${player.elo}   
+      Rating: ${player.elo}   
+      Maior Rating: ${player.maxElo}   
       ${streak.win ? 'Winning' : 'Losing'} Streak: ${streak.streak}     
       
       ${player.summoner.name && position ?
@@ -267,7 +271,7 @@ async function getPlayerById(id) {
 }
 
 async function getPlayersRanked() {
-  const players = await playerModel.find({}, ['id', 'name', 'elo'], { sort: { elo: -1 } })
+  const players = await playerModel.find({}, ['id', 'name', 'elo', 'maxElo'], { sort: { elo: -1 } })
   return players
 }
 async function setRanking() {
@@ -315,23 +319,34 @@ async function punish(message) {
 async function reset(message) {
   if (utilsBot.isAdm(message.member)) {
     const players = await playerModel.find()
-    let arrPromises = []
-    queueModel.remove()
-    players.map(p => arrPromises.push(playerModel.updateOne({ id: p.id }, { elo: 0, punicoes: 0 })))
-    Promise.all(arrPromises).then(result => setRanking(message))
+    await queueModel.remove()
+    for (const [idx, p] of players.entries()) {
+      await playerModel.updateOne({ id: p.id }, { elo: 0, maxElo: 0, punicoes: 0 })
+    }
+    const msg = new MessageEmbed()
+      .setDescription(`As partidas do servidor foram resetadas`)
+      .setColor(helper.okColor)
+
+    message.channel.send(msg)
+    setRanking(message)
   } else {
     utilsBot.noPermission(message)
   }
 }
 
 async function registerSummoner(message) {
-  const summonerName = message.content.split('"')[1]
-  const id = message.content.split(' ')[1].replace('<', '').replace('>', '').replace('@', '').replace('!', '')
+  if (utilsBot.isAdm(message.member)) {
 
-  handleRegisterSummoner(id, message, summonerName)
+    const summonerName = message.content.split('"')[1]
+    const id = message.content.split(' ')[1].replace('<', '').replace('>', '').replace('@', '').replace('!', '')
+
+    handleRegisterSummoner(id, message, summonerName)
+  } else {
+    utilsBot.noPermission(message)
+  }
 }
 
-async function handleRegisterSummoner(id, message, summonerName) {
+async function handleRegisterSummoner(id, message, summonerName,newRegister) {
   const summoner = await utilsRiot.searchBySummonerName(summonerName)
   const whoTo = utilsBot.checkDM(message) ? utilsBot.getMenctionById(message.author.id) : getGeralTextChannel()
   if (summoner) {
@@ -351,6 +366,16 @@ async function handleRegisterSummoner(id, message, summonerName) {
         .setColor(helper.infoColor)
 
       whoTo.send(msg)
+
+      if (utilsBot.checkDM(message) && newRegister) {
+        const msgCommands = new MessageEmbed()
+          .setDescription(`Agora que teu cadastro está finalizado, vou te apresentar rapidamente os comandos do servidors e para que servem.`)
+          .setColor(helper.infoColor)
+
+        whoTo.send(msgCommands)
+        handleCommands(message.author.id)
+      }
+
     } else {
       const msg = new MessageEmbed()
         .setDescription(`${utilsBot.getMenctionById(message.author.id)}, você ainda não possui Elo nas Rankeadas essa season`)
@@ -367,13 +392,56 @@ async function handleRegisterSummoner(id, message, summonerName) {
   }
 }
 
+function handleCommands(id) {
+  const member = utilsBot.getMenctionById(id)
+  const msgCommands2 = new MessageEmbed()
+    .setTitle(`Comandos Gerais (Podem ser usados no chat geral do servidor ou no chat privado do Bot)`)
+    .addField('!info ou !info @User', `
+          *Versão Chat Privado*
+            - Exibe suas próprias informações atuais no servidor e nas Rankeadas Solo/Duo
+
+            *Versão Chat Geral do Servidor*
+            - Exibe as informações atuais no servidor e nas Rankeadas Solo/Duo do usuário mencionado no @`)
+    .setColor(helper.infoColor)
+
+  const msgCommands3 = new MessageEmbed()
+    .setTitle(`Comandos do Servidor (Só podem ser usados em um canal do servidor)`)
+    .addField('!ranking', `
+          - Exibe o ranking dos jogadores do servidor`)
+    .addField('!queue ou !queue X', `
+          - Em sua primeira versão, pergunta ao usuário o tamanho da queue, o mesmo deve Reagir com um dos Emojis: 3⃣, 4⃣ ou 5⃣
+          - Em sua segunda versão, criará a Queue com o número representado pelo "X"`)
+    .addField('!clearqueue', `
+          - Caso você seja o dono da queue que está aberta, cancelará a mesma`)
+    .addField('!leavequeue', `
+          - Caso você esteja em uma queue, sairá da mesma`)
+    .addField('!join', `
+          - Se junta a queue em andamento`)
+    .addField('!versus @User1 @User2', `
+          - Trás um resumo do confronto entre os usuários mencionados entre os "@"s'`)
+    .setColor(helper.infoColor)
+
+  const msgCommands4 = new MessageEmbed()
+    .setTitle(`**Comandos Privados (Só podem ser usados no chat privado com o Bot)**`)
+    .addField('!summoner "Nome de Invocador"', `
+          - Altera o Invocador do seu registro no servidor para aquele mencionado entre aspas`)
+    .addField('!commands', `
+          - Exibe os comandos do bot`)
+    // .addField('!rules', `
+    //       - Exibe as regras do servidor`)
+    .setColor(helper.infoColor)
+  member.send(msgCommands2)
+  member.send(msgCommands3)
+  member.send(msgCommands4)
+}
+
 async function handleSummoner(message) {
   const player = await playerModel.findOne({ id: message.author.id })
 
   if (player && !player.summoner.id) {
-    handleRegisterSummoner(message.author.id, message, message.content)
+    handleRegisterSummoner(message.author.id, message, message.content, true)
 
   }
 }
 
-module.exports = { setRanking, getPlayerById, handleRegister, versus, info, punish, reset, registerSummoner, handleSummoner }
+module.exports = { setRanking,handleRegisterSummoner, getPlayerById, handleRegister, handleCommands, versus, info, punish, reset, registerSummoner, handleSummoner }

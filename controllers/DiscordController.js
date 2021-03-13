@@ -1,4 +1,4 @@
-const { bot, setRoles, setChannels, checkDM } = require('../utils/bot')
+const { bot, setRoles, setChannels, checkDM, muteAll } = require('../utils/bot')
 const { MessageEmbed } = require('discord.js')
 const helper = require('../helper.json')
 const connections = require('../connections.json')
@@ -23,7 +23,13 @@ bot.on('ready', async function () {
 bot.on('message', async message => {
   if (!checkDM(message)) {
     const arrMsg = message.content.split(' ')
-    switch (arrMsg[0]) {
+    switch (arrMsg[0].toLowerCase()) {
+      case '!mute':
+        await muteAll(message, true)
+        break
+      case '!unmute':
+        await muteAll(message, false)
+        break
       case '!queue':
         await queueController.setQueue(message)
         break;
@@ -33,6 +39,9 @@ bot.on('message', async message => {
       case '!ranking':
         await playerController.setRanking()
         break;
+      case '!leave':
+        await queueController.leaveQueue(message)
+        break
       case '!clearqueue':
         await queueController.clearQueue(message)
         break
@@ -60,11 +69,17 @@ bot.on('message', async message => {
     }
   } else {
     const arrMsg = message.content.split(' ')
-    switch (arrMsg[0]) {
-
+    switch (arrMsg[0].toLowerCase()) {
       case '!info':
         await playerController.info(message)
         break;
+      case '!commands':
+        await playerController.handleCommands(message.author.id)
+        break;
+      case '!summoner':
+        const summonerName = message.content.split('"')[1]
+        await playerController.handleRegisterSummoner(message.author.id, message, summonerName)
+        break
 
       default:
         await playerController.handleSummoner(message)

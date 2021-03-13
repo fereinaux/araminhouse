@@ -2,11 +2,11 @@ const Discord = require('discord.js')
 const bot = new Discord.Client()
 const helper = require('../helper.json')
 
-function checkDM(message){
+function checkDM(message) {
   return message.channel.type == 'dm' && !message.author.bot
 }
 
-function isAdm(member){
+function isAdm(member) {
   return member.hasPermission("ADMINISTRATOR")
 }
 
@@ -24,6 +24,11 @@ function noPermission(message) {
     .setColor(helper.errColor)
 
   message.channel.send(msg)
+}
+
+function setRegisteredRole(member) {
+  const role = bot.guilds.cache.first().roles.cache.find(e => e.name == "Registrado")
+  member.roles.add(role);
 }
 
 async function SetPlayerRoleByRanking(player, top1) {
@@ -58,6 +63,33 @@ async function setRoles() {
   if (!(roles.find(e => e.name == '5 - Diamante'))) {
     helper.roles.map(role => createRole(role.name, role.color))
   }
+  if (!(roles.find(e => e.name == 'Registrado'))) {
+    helper.specialRoles.map(role => createSpecialRole(role.name, role.permissions))
+  }
+}
+
+function muteAll(message,mute) {
+  if (isAdm(message.member)) {
+    const members = bot.guilds.cache.first().members.cache
+    for (let member of members) {
+      if (!isAdm(member[1])) {
+        if (member[1].voice.channel == message.member.voice.channel) {
+          member[1].voice.setMute(mute)
+        }
+      }
+    }
+  } else {
+    noPermission(message)
+  }
+}
+
+function createSpecialRole(role, permissions) {
+  bot.guilds.cache.first().roles.create({
+    data: {
+      name: role,
+      permissions: permissions
+    }
+  })
 }
 
 function createRole(role, color) {
@@ -65,7 +97,8 @@ function createRole(role, color) {
     data: {
       name: role,
       color: color,
-      hoist: true
+      hoist: true,
+      permissions: ['SEND_MESSAGES', 'VIEW_CHANNEL', 'CONNECT']
     }
   })
 
@@ -121,8 +154,8 @@ function getMemberById(id) {
 
 function setEloByPlayer(player) {
   const member = getMemberById(player.id);
-  
-  if (!member.hasPermission("ADMINISTRATOR")) {        
+
+  if (!member.hasPermission("ADMINISTRATOR")) {
     member.setNickname(`[${player.elo}]${member.user.username}`);
   }
 }
@@ -148,5 +181,7 @@ module.exports = {
   getEmojiByName,
   noPermission,
   getGeralTextChannel,
-  checkDM
+  checkDM,
+  setRegisteredRole,
+  muteAll  
 }

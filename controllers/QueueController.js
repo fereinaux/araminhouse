@@ -25,7 +25,7 @@ async function queueEmAndamentoExists() {
 }
 
 async function createQueue(message, size) {
-  await queueModel.create({ status: 'aberta', size: size, date: new Date() })
+  await queueModel.create({ status: 'aberta', ownerId: message.author.id, size: size, date: new Date() })
 
   const queueCreated = new MessageEmbed()
     .setTitle(`Queue criada`)
@@ -95,7 +95,7 @@ async function setQueue(message) {
   }
 }
 
-async function msgQueueNotExists() {
+function msgQueueNotExists() {
   const queueDoesntExists = new MessageEmbed()
     .setTitle(`Não existe uma Queue em andamento!`)
     .setColor(helper.errColor)
@@ -160,7 +160,7 @@ async function setJoin(message) {
       let players = queueJoinExists.players;
       if (players.find(el => el.id == message.authorID)) {
         const playerDuplicated = new MessageEmbed()
-          .setDescription(`${getMenctionById(message.author.id)} já está na Queue`)
+          .setDescription(`${getMenctionById(message.authorID)} já está na Queue`)
           .setColor(helper.errColor)
         getGeralTextChannel().send(playerDuplicated)
       } else {
@@ -190,8 +190,7 @@ async function setJoin(message) {
             .setColor(helper.okColor)
           getGeralTextChannel().send(teamEmbed)
 
-        } else {
-          const queueChannel = await getQueueChannel()
+        } else {          
           const playerQueue = new MessageEmbed()
             .setDescription(`**${getMenctionById(message.authorID)} entrou na Queue**
             **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)
@@ -208,23 +207,70 @@ async function setJoin(message) {
   }
 }
 
+async function leaveQueue(message) {
+  const queue = await queueExists();
+  if (queue && queue.status == 'aberta') {
+    if (queue.players.find(p => p.id == message.author.id)) {
+      if (queue.ownerId == message.author.id) {
+        const msgCancelada = new MessageEmbed()
+          .setTitle(`Queue cancelada!`)
+          .setColor(helper.errColor)
+        await queueModel.updateOne({ _id: queue._id }, { status: 'Canelada' })
+        getGeralTextChannel().send(msgCancelada)
+      } else {
+        queue.players = queue.players.filter(p => p.id != message.author.id)
+
+        await queueModel.updateOne({ _id: queue._id }, queue)
+
+        const msgOk = new MessageEmbed()
+          .setDescription(`**${getMenctionById(message.author.id)} saiu da Queue**
+        **${queue.players.length}/${queue.size * 2}**`)
+          .setColor(helper.okColor)
+          .setColor(helper.okColor)
+        getGeralTextChannel().send(msgOk)
+      }
+    } else {
+      const msgNotInQueue = new MessageEmbed()
+        .setTitle(`Você não está na Queue`)
+        .setColor(helper.errColor)
+      getGeralTextChannel().send(msgNotInQueue)
+    }
+  } else if (queue && queue.status == 'Em andamento') {
+    const msgQueueStarted = new MessageEmbed()
+      .setTitle(`Você não pode sair de uma queue depois que ela está formada, caso não jogue a partida, poderá ser punido conforme as regras do servidor`)
+      .setColor(helper.errColor)
+    getGeralTextChannel().send(msgQueueStarted)
+  } else {
+    msgQueueNotExists()
+  }
+}
+
 async function clearQueue(message) {
   const queue = await queueExists();
   const msgCancelada = new MessageEmbed()
     .setTitle(`Queue cancelada!`)
     .setColor(helper.errColor)
-  if (queue.status == 'aberta') {
-    await queueModel.updateOne({ status: 'aberta' }, { status: 'Canelada' });
-    getGeralTextChannel().send(msgCancelada)
-  } else if (queue.status == 'Em andamento') {
-    if (isAdm(message.member)) {
-      await queueModel.updateOne({ status: 'Em andamento' }, { status: 'Canelada' });
-      getGeralTextChannel().send(msgCancelada)
-    } else {
-      const msgAdm = new MessageEmbed()
-        .setTitle(`Apenas administradores podem cancelar uma queue depois que ela é formada!`)
-        .setColor(helper.errColor)
-      getGeralTextChannel().send(msgAdm)
+  if (queue) {
+    if (queue.status == 'aberta') {
+      if (queue.ownerId == message.author.id || isAdm(message.member)) {
+        await queueModel.updateOne({ status: 'aberta' }, { status: 'Canelada' });
+        getGeralTextChannel().send(msgCancelada)
+      } else {
+        const msgNotOwner = new MessageEmbed()
+          .setTitle(`Você não pode cancelar uma queue que não foi você que criou!`)
+          .setColor(helper.errColor)
+        getGeralTextChannel().send(msgNotOwner)
+      }
+    } else if (queue.status == 'Em andamento') {
+      if (isAdm(message.member)) {
+        await queueModel.updateOne({ status: 'Em andamento' }, { status: 'Canelada' });
+        getGeralTextChannel().send(msgCancelada)
+      } else {
+        const msgAdm = new MessageEmbed()
+          .setTitle(`Apenas administradores podem cancelar uma queue depois que ela é formada!`)
+          .setColor(helper.errColor)
+        getGeralTextChannel().send(msgAdm)
+      }
     }
   }
   else {
@@ -268,8 +314,12 @@ async function setPoints(queue) {
   for (const [idx, p] of queue.players.entries()) {
     const win = p.stats.win
     const queuePoints = getPointsByQueueSize(queue.size)
-    const updatedPlayer = await playerModel
-      .findOneAndUpdate({ id: p.id }, { $inc: { elo: win ? queuePoints.win : - (queuePoints.loss) } }, { new: true })
+    const player = await playerModel.findOne({ id: p.id })
+    player.elo = player.elo + (win ? queuePoints.win : - (queuePoints.loss))
+    if (!player.maxElo || player.maxElo < player.elo)
+      player.maxElo = player.elo
+
+    await playerModel.findOneAndUpdate({ id: p.id }, player)
     const streak = await getStreak(p.id, win)
     const pvtMsg = new MessageEmbed()
       .setTitle(`Informações da Partida`)
@@ -277,8 +327,10 @@ async function setPoints(queue) {
       .setDescription(`**${win ? 'Vitória' : 'Derrota'}**
         Dano: ${Math.floor(p.stats.damage / 1000)}K
         KDA: ${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}
-        Gold: ${Math.floor(p.stats.gold / 1000)}K   
-      
+        Gold: ${Math.floor(p.stats.gold / 1000)}K
+                 
+        Rating: ${player.elo}
+        Maior Rating: ${player.maxElo}
         ${win ? 'Winning' : 'Losing'} Streak: ${streak}
       `)
       .setColor(win ? helper.okColor : helper.errColor)
@@ -397,4 +449,4 @@ async function handlePlayerInGame(response, queue) {
   getGeralTextChannel().send(msg)
 }
 
-module.exports = { setJoin, setQueue, queueExists, queueEmAndamentoExists, clearQueue, handleCronCheck }
+module.exports = { setJoin, setQueue, queueExists, queueEmAndamentoExists, clearQueue, leaveQueue, handleCronCheck }

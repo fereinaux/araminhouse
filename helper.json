@@ -12,7 +12,7 @@
     "!punish"
   ],
   "splitTeams": false,
-  "lolApiKey": "RGAPI-87d51108-d37a-4dc0-b207-7102fef3a6f6",
+  "lolApiKey": "RGAPI-707d3cf0-3e0e-4b3c-9e4e-bf63425b1cdf",
   "lolBaseUrl": "https://br1.api.riotgames.com",
   "errColor": 15158332,
   "okColor": 3066993,
@@ -32,6 +32,12 @@
       "size": 5,
       "win": 7,
       "loss": 4
+    }
+  ],
+  "specialRoles": [
+    {
+      "name": "Registrado",
+      "permissions": ["SEND_MESSAGES","ADD_REACTIONS", "VIEW_CHANNEL","CONNECT","SPEAK","USE_VAD","READ_MESSAGE_HISTORY","CREATE_INSTANT_INVITE"]
     }
   ],
   "roles": [
