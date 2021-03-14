@@ -1,4 +1,4 @@
-const { bot, setRoles, setChannels, checkDM, muteAll } = require('../utils/bot')
+const { bot, setRoles, setChannels, checkDM, muteAll, setTimer } = require('../utils/bot')
 const { MessageEmbed } = require('discord.js')
 const helper = require('../helper.json')
 const connections = require('../connections.json')

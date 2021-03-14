@@ -25,14 +25,28 @@ async function queueEmAndamentoExists() {
   return existsQueue;
 }
 
-async function createQueue(message, size) {
-  await queueModel.create({ status: 'aberta', ownerId: message.author.id, size: size, date: new Date() })
+async function createQueue(ownerId, size, reopen) {
+  await queueModel.create({ status: 'aberta', reopen: reopen, ownerId: ownerId, size: size, date: new Date() })
 
-  const queueCreated = new MessageEmbed()
-    .setTitle(`Queue criada`)
-    .setDescription(`**0/${size * 2}**`)
-    .setColor(helper.okColor)
-  getGeralTextChannel().send(queueCreated)
+  if (reopen) {
+    const openQueueDate = new Date()
+    const queueCreated = new MessageEmbed()
+      .setTitle(`Qeueue reaberta`)
+      .setDescription(`**0/${size * 2}**
+    Durante 2 minutos a prioridade é de quem já estava no game anterior, após esse tempo a qeueue estará aberta a entrada de qualquer pessoa    
+    
+    Hora da reabertura ${moment(openQueueDate).add(2, 'minutes').format('DD/MM/YYYY HH:mm')}
+    `)
+      .setColor(helper.infoColor)
+    getGeralTextChannel().send(queueCreated)
+  } else {
+
+    const queueCreated = new MessageEmbed()
+      .setTitle(`Queue criada`)
+      .setDescription(`**0/${size * 2}**`)
+      .setColor(helper.okColor)
+    getGeralTextChannel().send(queueCreated)
+  }
 }
 
 async function setQueue(message) {
@@ -42,7 +56,7 @@ async function setQueue(message) {
     if (arrMsg.length > 1) {
       let size = parseInt(arrMsg[1])
       if (size > 2 && size < 6) {
-        createQueue(message, size)
+        await createQueue(message.author.id, size, false)
       } else {
         const msg = new MessageEmbed()
           .setTitle(`Tamanho da Queue não suportado`)
@@ -83,7 +97,7 @@ async function setQueue(message) {
               default:
                 break;
             }
-            createQueue(message, size)
+            createQueue(message.author.id, size, false)
           })
         })
       })
@@ -165,38 +179,26 @@ async function setJoin(message) {
           .setColor(helper.errColor)
         getGeralTextChannel().send(playerDuplicated)
       } else {
-        const player = await playerModel.findOne({ id: message.authorID })
-        players.push({ name: player.name, id: message.authorID, summoner: player.summoner })
-        await queueModel.updateOne({ status: 'aberta' }, { players: players }, { new: true })
-        if (queueJoinExists.players.length == (queueJoinExists.size * 2)) {
-          const randomPlayers = queueJoinExists.players.sort(() => Math.random() - 0.5)
-          const teamOne = randomPlayers.slice(0, queueJoinExists.size)
-          const teamTwo = randomPlayers.slice(queueJoinExists.size, queueJoinExists.size * 2)
-
-          const arrElo = await getArrElo(teamOne, teamTwo)
-
-          await queueModel.updateOne({ status: 'aberta' }, { status: 'Em andamento', teamOne: teamOne, teamTwo: teamTwo })
-          const teamsDescription = `
-            **Time 1**
-            
-            ${mapTeam(teamOne, arrElo)}                
-            
-            **Time 2**
-  
-            ${mapTeam(teamTwo, arrElo)}`;
-
-          const teamEmbed = new MessageEmbed()
-            .setTitle(`Queue fechada`)
-            .setDescription(teamsDescription)
-            .setColor(helper.okColor)
-          getGeralTextChannel().send(teamEmbed)
-
+        if (queueJoinExists.reopen) {
+          const playersLastQueue = await queueModel.findOne({ status: "Concluída" }, ['players', 'date', 'endDate'], { sort: { date: -1 } })
+          const startTime = moment(playersLastQueue.endDate);
+          const endTime = moment(new Date());
+          const duration = (endTime.diff(startTime))
+          const minutes = parseInt(moment.duration(duration).asMinutes());
+          if (minutes < 2) {
+            if (playersLastQueue.players.find(p => p.id === message.authorID)) {
+              await handleJoinPlayerQueue(message, players, queueJoinExists)
+            } else {
+              const playerQueue = new MessageEmbed()
+                .setDescription(`Ainda estamos em lista de prioridade por mais ${seconds} segundos`)
+                .setColor(helper.errColor)
+              getGeralTextChannel().send(playerQueue)
+            }
+          } else {
+            await handleJoinPlayerQueue(message, players, queueJoinExists)
+          }
         } else {
-          const playerQueue = new MessageEmbed()
-            .setDescription(`**${getMenctionById(message.authorID)} entrou na Queue**
-            **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)
-            .setColor(helper.okColor)
-          getGeralTextChannel().send(playerQueue)
+          await handleJoinPlayerQueue(message, players, queueJoinExists)
         }
       }
     } else {
@@ -205,6 +207,46 @@ async function setJoin(message) {
         .setColor(helper.errColor)
       getGeralTextChannel().send(queueSize)
     }
+  }
+}
+
+async function handleJoinPlayerQueue(message, players, queueJoinExists) {
+  const player = await playerModel.findOne({ id: message.authorID })
+  players.push({ name: player.name, id: message.authorID, summoner: player.summoner })
+  await queueModel.updateOne({ status: 'aberta' }, { players: players }, { new: true })
+  await handleStart(queueJoinExists, message)
+}
+
+async function handleStart(queueJoinExists, message) {
+  if (queueJoinExists.players.length == (queueJoinExists.size * 2)) {
+    const randomPlayers = queueJoinExists.players.sort(() => Math.random() - 0.5)
+    const teamOne = randomPlayers.slice(0, queueJoinExists.size)
+    const teamTwo = randomPlayers.slice(queueJoinExists.size, queueJoinExists.size * 2)
+
+    const arrElo = await getArrElo(teamOne, teamTwo)
+
+    await queueModel.updateOne({ status: 'aberta' }, { status: 'Em andamento', teamOne: teamOne, teamTwo: teamTwo })
+    const teamsDescription = `
+            **Time 1**
+            
+            ${mapTeam(teamOne, arrElo)}                
+            
+            **Time 2**
+  
+            ${mapTeam(teamTwo, arrElo)}`
+
+    const teamEmbed = new MessageEmbed()
+      .setTitle(`Queue fechada`)
+      .setDescription(teamsDescription)
+      .setColor(helper.okColor)
+    getGeralTextChannel().send(teamEmbed)
+
+  } else {
+    const playerQueue = new MessageEmbed()
+      .setDescription(`**${getMenctionById(message.authorID)} entrou na Queue**
+            **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)
+      .setColor(helper.okColor)
+    getGeralTextChannel().send(playerQueue)
   }
 }
 
@@ -298,7 +340,7 @@ async function getStreak(id, win) {
     queueStreak = queueStreak.filter(x => x.players.find(y => y && y.id == id))
 
     let streak = 1
-    for (let i = 1; i < queueStreak.length; i++) {
+    for (let i = 0; i < queueStreak.length; i++) {
       const queue = queueStreak[i];
       const playerQueue = queue.players.find(y => y.id == id)
       if (playerQueue.stats && playerQueue.stats.win == win) {
@@ -317,7 +359,7 @@ async function setPoints(queue) {
     const queuePoints = getPointsByQueueSize(queue.size)
     const player = await playerModel.findOne({ id: p.id })
     player.elo = player.elo + (win ? queuePoints.win : - (queuePoints.loss))
-    if (!player.maxElo || player.maxElo < player.elo)
+    if (!player.maxElo || player.maxElo > player.elo)
       player.maxElo = player.elo
 
     await playerModel.findOneAndUpdate({ id: p.id }, player)
@@ -340,7 +382,7 @@ async function setPoints(queue) {
     const member = getMenctionById(p.id)
     member.send(pvtMsg)
   }
-  await queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída' })
+  await queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', endDate: new Date() })
 }
 
 async function handleCronCheck() {
@@ -436,6 +478,7 @@ async function handleQueueHasMatchId(queue, response) {
   getGeralTextChannel().send(msgFeeder)
   await setPoints(queue)
   setRanking()
+  await createQueue(queue.ownerId, queue.size, true)
 }
 
 async function handlePlayerInGame(response, queue) {

@@ -68,7 +68,7 @@ async function setRoles() {
   }
 }
 
-function muteAll(message,mute) {
+function muteAll(message, mute) {
   if (isAdm(message.member)) {
     const members = bot.guilds.cache.first().members.cache
     for (let member of members) {
