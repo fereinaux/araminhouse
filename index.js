@@ -15,6 +15,6 @@ cron.schedule("0 0 * * 1", function(){
 })
 
 cron.schedule("0 0 1 * 0", function(){
-  queueController.monthkResume()
+  queueController.monthResume()
 })
 
