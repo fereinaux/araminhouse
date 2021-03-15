@@ -35,7 +35,7 @@ async function createQueue(ownerId, size, reopen) {
       .setDescription(`**0/${size * 2}**
     Durante 2 minutos a prioridade é de quem já estava no game anterior, após esse tempo a qeueue estará aberta a entrada de qualquer pessoa    
     
-    Hora da reabertura ${moment(openQueueDate).add(2, 'minutes').format('DD/MM/YYYY HH:mm')}
+    Hora da reabertura ${moment(openQueueDate).add(2, 'minutes').format('HH:mm')}
     `)
       .setColor(helper.infoColor)
     getGeralTextChannel().send(queueCreated)
@@ -189,9 +189,9 @@ async function setJoin(message) {
           if (minutes < 2) {
             if (playersLastQueue.players.find(p => p.id === message.authorID)) {
               await handleJoinPlayerQueue(message, players, queueJoinExists)
-            } else {              
+            } else {
               const playerQueue = new MessageEmbed()
-                .setDescription(`Ainda estamos em lista de prioridade por mais ${120 -seconds} segundos`)
+                .setDescription(`Ainda estamos em lista de prioridade por mais ${120 - seconds} segundos`)
                 .setColor(helper.errColor)
               getGeralTextChannel().send(playerQueue)
             }
@@ -495,4 +495,145 @@ async function handlePlayerInGame(response, queue) {
   getGeralTextChannel().send(msg)
 }
 
-module.exports = { setJoin, setQueue, queueExists, queueEmAndamentoExists, clearQueue, leaveQueue, handleCronCheck }
+var groupBy = function (xs, key) {
+  return xs.reduce(function (rv, x) {
+    (rv[x[key]] = rv[x[key]] || []).push(x);
+    return rv;
+  }, {});
+};
+
+async function getResumeByDate(beginDate, endDate, type) {
+  const queues = await queueModel.find({
+    date: {
+      $gte: beginDate,
+      $lt: endDate
+    },
+    status: 'Concluída'
+  })
+
+  const arrPlayers = []
+  const arrPlayersWins = []
+  const arrPlayersLosses = []
+
+  queues.map(q => q.players.map(p => {
+    arrPlayers.push(p)
+    if (p && p.stats) {
+      if (p.stats.win) {
+        arrPlayersWins.push(p)
+      } else {
+        arrPlayersLosses.push(p)
+      }
+    }
+  }))
+
+  const arrChampions = []
+  const arrChampionsWins = []
+  const arrChampionsLosses = []
+
+  arrPlayers.map(p => {
+    if (p && p.champion) {
+      arrChampions.push(p.champion)
+    }
+  })
+  arrPlayersWins.map(p => {
+    if (p && p.champion) {
+      arrChampionsWins.push(p.champion)
+    }
+  })
+  arrPlayersLosses.map(p => {
+    if (p && p.champion) {
+      arrChampionsLosses.push(p.champion)
+    }
+  })  
+
+  const monstLosePlayer = objToArray(groupBy(arrPlayersLosses, 'id')).sort((a, b) => b.length - a.length)[0]
+  const mostWinsPlayer = objToArray(groupBy(arrPlayersWins, 'id')).sort((a, b) => b.length - a.length)[0]
+  const mostUsedChamp = objToArray(groupBy(arrChampions, 'name')).sort((a, b) => b.length - a.length)[0]
+  const mostWinChamp = objToArray(groupBy(arrChampionsWins, 'name')).sort((a, b) => b.length - a.length)[0]
+  const mostLoseChamp = objToArray(groupBy(arrChampionsLosses, 'name')).sort((a, b) => b.length - a.length)[0]
+
+  let title;
+  switch (type) {
+    case 'day':
+      title = `**Resumo ${moment(endDate).format('DD/MM/YYYY')}**`
+      break;
+    case 'week':
+      title = `**Resumo da Semana (${moment(beginDate).format('DD/MM/YYYY')} - ${moment(endDate).format('DD/MM/YYYY')})**`
+      break;
+    case 'month':
+      title = `**Resumo do Mês ${moment(endDate).format('MM/YYYY')}**`
+      break;
+    default:
+      break;
+  }
+
+  const msg1 = new MessageEmbed()
+    .setTitle(title)
+    .setDescription(
+      `Total de Queues: ${queues.length}
+      Top Wins: ${getMenctionById(mostWinsPlayer[0].id)} ${mostWinsPlayer.length} vitórias
+      Top Loses: ${getMenctionById(monstLosePlayer[0].id)} ${monstLosePlayer.length} derrotas
+      `)
+    .setColor(helper.info)
+  const msg2 = new MessageEmbed()
+    .setTitle(`**Campeão mais usado**`)
+    .setThumbnail(utilsRiot.getImageByChampionPath(mostUsedChamp[0].path))
+    .setDescription(
+      `${mostUsedChamp.length} partidas`)
+    .setColor(helper.infoColor)
+  const msg3 = new MessageEmbed()
+    .setTitle(`**Campeão com mais vitórias**`)
+    .setThumbnail(utilsRiot.getImageByChampionPath(mostWinChamp[0].path))
+    .setDescription(
+      `${mostWinChamp.length} vitórias`)
+    .setColor(helper.okColor)
+  const msg4 = new MessageEmbed()
+    .setTitle(`**Campeão mais derrotas**`)
+    .setThumbnail(utilsRiot.getImageByChampionPath(mostLoseChamp[0].path))
+    .setDescription(
+      `${mostLoseChamp.length} derrotas`)
+    .setColor(helper.errColor)
+  getGeralTextChannel().send(msg1)
+  getGeralTextChannel().send(msg2)
+  getGeralTextChannel().send(msg3)
+  getGeralTextChannel().send(msg4)
+
+  function objToArray(obj) {
+    array = []
+    for (const key in obj) {
+      if (Object.hasOwnProperty.call(obj, key)) {
+        const element = obj[key]
+        array.push(element)
+      }
+    }
+    return array
+  }
+}
+
+async function dayResume() {
+  const date = moment().subtract(1, "days");
+  await getResumeByDate(date.startOf('day').toDate(), date.endOf('day').toDate(), 'day')
+}
+
+async function weekResume() {
+  const date = moment().subtract(1, "days");
+  await getResumeByDate(date.startOf('isoWeek').toDate(), date.endOf('isoWeek').toDate(), 'week')
+}
+
+async function monthResume() {
+  const date = moment().subtract(1, "days");
+  await getResumeByDate(date.startOf('month').toDate(), date.endOf('month').toDate(), 'month')
+}
+
+module.exports = {
+  monthResume,
+  weekResume,
+  dayResume,
+  setJoin,
+  setQueue,
+  queueExists,
+  queueEmAndamentoExists,
+  clearQueue,
+  leaveQueue,
+  handleCronCheck
+}
