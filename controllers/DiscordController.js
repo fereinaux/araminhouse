@@ -18,7 +18,6 @@ bot.on('ready', async function () {
   await bot.guilds.cache.first().members.fetch({ cache: true })
   await setRoles();
   await setChannels();
-  await queueController.monthResume()
 })
 
 bot.on('message', async message => {
