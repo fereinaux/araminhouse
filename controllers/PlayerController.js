@@ -1,10 +1,10 @@
 const playerModel = require('../models/Player')
+const queueModel = require('../models/Queue')
 const helper = require('../helper.json')
 const { MessageEmbed } = require('discord.js')
 const { getGeralTextChannel } = require('../utils/bot')
 const utilsBot = require('../utils/bot')
 const utilsRiot = require('../utils/riot')
-const queueModel = require('../models/Queue')
 const moment = require('moment')
 
 async function handleRegister(member) {
@@ -39,7 +39,7 @@ async function versus(message, player1, player2) {
   const id1 = player1.replace('<', '').replace('>', '').replace('@', '').replace('!', '')
   const id2 = player2.replace('<', '').replace('>', '').replace('@', '').replace('!', '')
 
-  const gamesquery = await queueModel.find()
+  const gamesquery = await queueModel.find({status: 'Concluída'})
   const games = gamesquery.filter(
     x =>
       (
@@ -114,7 +114,7 @@ async function info(message, id) {
   id = id ? id.replace('<', '').replace('>', '').replace('@', '').replace('!', '') : message.author.id
   const player = await getPlayerById(id)
 
-  const gamesquery = await queueModel.find()
+  const gamesquery = await queueModel.find({status: 'Concluída'})
 
   const games = gamesquery.filter(
     x =>

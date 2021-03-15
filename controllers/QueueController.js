@@ -1,19 +1,15 @@
 const queueModel = require('../models/Queue')
+const playerModel = require('../models/Player')
 const moment = require('moment')
 const helper = require('../helper.json')
 const {
-  getQueueChannel,
   isAdm,
   getMenctionById,
-  getTeamOneChannel,
-  getTeamTwoChannel,
-  sendAllGeral,
   getEmojiByName,
   getGeralTextChannel
 } = require('../utils/bot')
 const { MessageEmbed } = require('discord.js')
-const { setRanking, getPlayerById } = require('./PlayerController')
-const playerModel = require('../models/Player')
+const { setRanking } = require('./PlayerController')
 const utilsRiot = require('../utils/riot')
 
 async function queueExists() {
@@ -574,7 +570,7 @@ async function getResumeByDate(beginDate, endDate, type) {
       Top Wins: ${getMenctionById(mostWinsPlayer[0].id)} ${mostWinsPlayer.length} vitórias
       Top Loses: ${getMenctionById(monstLosePlayer[0].id)} ${monstLosePlayer.length} derrotas
       `)
-    .setColor(helper.info)
+    .setColor(helper.infoColor)
   const msg2 = new MessageEmbed()
     .setTitle(`**Campeão mais usado**`)
     .setThumbnail(utilsRiot.getImageByChampionPath(mostUsedChamp[0].path))
@@ -582,13 +578,13 @@ async function getResumeByDate(beginDate, endDate, type) {
       `${mostUsedChamp.length} partidas`)
     .setColor(helper.infoColor)
   const msg3 = new MessageEmbed()
-    .setTitle(`**Campeão com mais vitórias**`)
+    .setTitle(`**Campeão mais vitorioso**`)
     .setThumbnail(utilsRiot.getImageByChampionPath(mostWinChamp[0].path))
     .setDescription(
       `${mostWinChamp.length} vitórias`)
     .setColor(helper.okColor)
   const msg4 = new MessageEmbed()
-    .setTitle(`**Campeão mais derrotas**`)
+    .setTitle(`**Campeão mais derrotado**`)
     .setThumbnail(utilsRiot.getImageByChampionPath(mostLoseChamp[0].path))
     .setDescription(
       `${mostLoseChamp.length} derrotas`)
