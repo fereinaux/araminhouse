@@ -185,12 +185,13 @@ async function setJoin(message) {
           const endTime = moment(new Date());
           const duration = (endTime.diff(startTime))
           const minutes = parseInt(moment.duration(duration).asMinutes());
+          const seconds = parseInt(moment.duration(duration).asSeconds());
           if (minutes < 2) {
             if (playersLastQueue.players.find(p => p.id === message.authorID)) {
               await handleJoinPlayerQueue(message, players, queueJoinExists)
-            } else {
+            } else {              
               const playerQueue = new MessageEmbed()
-                .setDescription(`Ainda estamos em lista de prioridade por mais ${seconds} segundos`)
+                .setDescription(`Ainda estamos em lista de prioridade por mais ${120 -seconds} segundos`)
                 .setColor(helper.errColor)
               getGeralTextChannel().send(playerQueue)
             }
