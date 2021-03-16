@@ -4,6 +4,7 @@ const playerSchema = new Schema({
   name: String,
   id: String,
   elo: Number,
+  maxElo: Number,
   punicoes: Number,
   summoner: {
     name: String,
