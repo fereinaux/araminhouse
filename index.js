@@ -6,15 +6,15 @@ cron.schedule("*/10 * * * * *", function() {
   queueController.handleCronCheck()
 });
 
-cron.schedule("0 0 * * *", function(){
+cron.schedule("0 3 * * *", function(){
   queueController.dayResume()
 })
 
-cron.schedule("0 0 * * 1", function(){
+cron.schedule("0 3 * * 1", function(){
   queueController.weekResume()
 })
 
-cron.schedule("0 0 1 * 0", function(){
+cron.schedule("0 3 1 * 0", function(){
   queueController.monthResume()
 })
 

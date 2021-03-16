@@ -499,10 +499,11 @@ var groupBy = function (xs, key) {
 };
 
 async function getResumeByDate(beginDate, endDate, type) {
+  
   const queues = await queueModel.find({
     date: {
-      $gte: beginDate,
-      $lt: endDate
+      $gte: moment(beginDate).add(3,'hours').toDate(),
+      $lt: moment(endDate).add(3,'hours').toDate()
     },
     status: 'Concluída'
   })
