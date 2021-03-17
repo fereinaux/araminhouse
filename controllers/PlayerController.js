@@ -77,7 +77,7 @@ async function versus(message, player1, player2) {
 }
 
 async function getLastQueue(id) {
-  let queues = await queueModel.find({ status: "Concluída" }, ['players','date'], { sort: { date: -1 } })
+  let queues = await queueModel.find({ status: "Concluída" }, ['players', 'date'], { sort: { date: -1 } })
   queues = queues.filter(x => x.players.find(y => y && y.id == id))
   return queues[0]
 }
@@ -113,7 +113,7 @@ async function getStreak(id) {
 async function info(message, id) {
   id = id ? id.replace('<', '').replace('>', '').replace('@', '').replace('!', '') : message.author.id
 
-  var { player, games, player1Wins, player1Losses, streak, lastQueue, position } = await getObjPlayer(id)
+  var { player, games, player1Wins, player1Losses, streak, lastQueue, position, players } = await getObjPlayer(id)
 
   const msg = new MessageEmbed()
     .setDescription(`
@@ -182,7 +182,7 @@ async function getObjPlayer(id) {
   const lastQueue = await getLastQueue(id)
   const avatarURL = utilsBot.getMenctionById(id).user.avatarURL()
   const serverElo = getEloByPlayer(player, players)
-  return { player, games, player1Wins, player1Losses, streak, lastQueue, position, avatarURL, serverElo }
+  return { player, players, games, player1Wins, player1Losses, streak, lastQueue, position, avatarURL, serverElo }
 }
 
 function getImageByName(name) {
@@ -314,7 +314,7 @@ async function getPlayersRanked() {
   return players
 }
 
-async function playersRankedPortal(){
+async function playersRankedPortal() {
   const players = await getPlayersRanked();
   const result = []
   players.map(p => {
@@ -421,21 +421,15 @@ async function handleRegisterSummoner(id, message, summonerName, newRegister) {
 
       whoTo.send(msg)
 
-      if (utilsBot.checkDM(message) && newRegister) {
-        const msgCommands = new MessageEmbed()
-          .setDescription(`Agora que teu cadastro está finalizado, vou te apresentar rapidamente os comandos do servidors e para que servem.`)
-          .setColor(helper.infoColor)
+    } 
+    
+    if (utilsBot.checkDM(message) && newRegister) {
+      const msgCommands = new MessageEmbed()
+        .setDescription(`Agora que teu cadastro está finalizado, vou te apresentar rapidamente os comandos do servidors e para que servem.`)
+        .setColor(helper.infoColor)
 
-        whoTo.send(msgCommands)
-        handleCommands(message.author.id)
-      }
-
-    } else {
-      const msg = new MessageEmbed()
-        .setDescription(`${utilsBot.getMenctionById(message.author.id)}, você ainda não possui Elo nas Rankeadas essa season`)
-        .setColor(helper.errColor)
-
-      whoTo.send(msg)
+      whoTo.send(msgCommands)
+      handleCommands(message.author.id)
     }
   } else {
     const msg = new MessageEmbed()
