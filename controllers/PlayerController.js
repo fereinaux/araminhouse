@@ -39,7 +39,7 @@ async function versus(message, player1, player2) {
   const id1 = player1.replace('<', '').replace('>', '').replace('@', '').replace('!', '')
   const id2 = player2.replace('<', '').replace('>', '').replace('@', '').replace('!', '')
 
-  const gamesquery = await queueModel.find({status: 'Concluída'})
+  const gamesquery = await queueModel.find({ status: 'Concluída' })
   const games = gamesquery.filter(
     x =>
       (
@@ -77,7 +77,7 @@ async function versus(message, player1, player2) {
 }
 
 async function getLastQueue(id) {
-  let queues = await queueModel.find({ status: "Concluída" }, ['players'], { sort: { date: -1 } })
+  let queues = await queueModel.find({ status: "Concluída" }, ['players','date'], { sort: { date: -1 } })
   queues = queues.filter(x => x.players.find(y => y && y.id == id))
   return queues[0]
 }
@@ -112,43 +112,8 @@ async function getStreak(id) {
 
 async function info(message, id) {
   id = id ? id.replace('<', '').replace('>', '').replace('@', '').replace('!', '') : message.author.id
-  const player = await getPlayerById(id)
 
-  const gamesquery = await queueModel.find({status: 'Concluída'})
-
-  const games = gamesquery.filter(
-    x =>
-      (x.teamOne.find(y => y.id == id)) ||
-      (x.teamTwo.find(y => y.id == id))
-  )
-
-  const players = await getPlayersRanked()
-
-  const image = getImageByPlayers(player, players)
-
-  let player1Wins = 0
-  let player1Losses = 0
-
-  games.map(game => {
-    const playingGame = game.players.find(player => player && player.id == id)
-    if (playingGame) {
-      if (playingGame.stats && playingGame.stats.win) {
-        player1Wins++
-      } else if (playingGame.stats && !playingGame.stats.win) {
-        player1Losses++
-      }
-    }
-  }) 
-
-  let position;
-
-  if (player.summoner && player.summoner.id) {
-    const positions = await utilsRiot.searchSummonerLeague(player.summoner.id);
-    position = positions.find(p => p.queueType == 'RANKED_SOLO_5x5');
-  }
-
-  const streak = await getStreak(id)
-  const lastQueue = await getLastQueue(id)
+  var { player, games, player1Wins, player1Losses, streak, lastQueue, position } = await getObjPlayer(id)
 
   const msg = new MessageEmbed()
     .setDescription(`
@@ -180,6 +145,44 @@ async function info(message, id) {
     getGeralTextChannel().send(msg)
   else
     utilsBot.getMenctionById(message.author.id).send(msg)
+}
+
+async function getObjPlayer(id) {
+  const player = await getPlayerById(id)
+  const players = await getPlayersRanked()
+  const gamesquery = await queueModel.find({ status: 'Concluída' })
+
+  const games = gamesquery.filter(
+    x => (x.teamOne.find(y => y.id == id)) ||
+      (x.teamTwo.find(y => y.id == id))
+  )
+
+  let player1Wins = 0
+  let player1Losses = 0
+
+  games.map(game => {
+    const playingGame = game.players.find(player => player && player.id == id)
+    if (playingGame) {
+      if (playingGame.stats && playingGame.stats.win) {
+        player1Wins++
+      } else if (playingGame.stats && !playingGame.stats.win) {
+        player1Losses++
+      }
+    }
+  })
+
+  let position
+
+  if (player.summoner && player.summoner.id) {
+    const positions = await utilsRiot.searchSummonerLeague(player.summoner.id)
+    position = positions.find(p => p.queueType == 'RANKED_SOLO_5x5')
+  }
+
+  const streak = await getStreak(id)
+  const lastQueue = await getLastQueue(id)
+  const avatarURL = utilsBot.getMenctionById(id).user.avatarURL()
+  const serverElo = getEloByPlayer(player, players)
+  return { player, games, player1Wins, player1Losses, streak, lastQueue, position, avatarURL, serverElo }
 }
 
 function getImageByName(name) {
@@ -237,6 +240,38 @@ function getImageByPlayers(player, players) {
   }
 }
 
+function getEloByPlayer(player, players) {
+  if (players[0].id == player.id) {
+    return 'challenger'
+  } else {
+    helper.roles.sort(function (a, b) {
+      return a.pontos - b.pontos;
+    })
+    const role = helper.roles.find(roleFilter => roleFilter.pontos > player.elo || (
+      roleFilter.pontos < player.elo &&
+      roleFilter.name == helper.roles.sort(s => s.pontos)[helper.roles.length - 1].name))
+
+    if (role.name.toLowerCase().includes('ferro')) {
+      return 'iron'
+    }
+    else if (role.name.toLowerCase().includes('bronze')) {
+      return 'bronze'
+    } else if (role.name.toLowerCase().includes('prata')) {
+      return 'silver'
+    } else if (role.name.toLowerCase().includes('ouro')) {
+      return 'gold'
+    } else if (role.name.toLowerCase().includes('platina')) {
+      return 'platinum'
+    } else if (role.name.toLowerCase().includes('diamante')) {
+      return 'diamond'
+    } else if (role.name.toLowerCase().includes('master')) {
+      return 'master'
+    } else if (role.name.toLowerCase().includes('grandmaster')) {
+      return 'grandmaster'
+    }
+  }
+}
+
 function getEmojiByPlayer(player, players) {
   if (players[0].id == player.id) {
     return utilsBot.getEmojiByName('challenger')
@@ -278,6 +313,21 @@ async function getPlayersRanked() {
   const players = await playerModel.find({}, ['id', 'name', 'elo', 'maxElo'], { sort: { elo: -1 } })
   return players
 }
+
+async function playersRankedPortal(){
+  const players = await getPlayersRanked();
+  const result = []
+  players.map(p => {
+    result.push({
+      id: p.id,
+      name: p.name,
+      elo: p.elo,
+      avatarURL: utilsBot.getMenctionById(p.id).user.avatarURL()
+    })
+  })
+  return result
+}
+
 async function setRanking() {
   const players = await getPlayersRanked()
   let rankDesc = '';
@@ -448,4 +498,18 @@ async function handleSummoner(message) {
   }
 }
 
-module.exports = { setRanking, handleRegisterSummoner, getPlayerById, handleRegister, handleCommands, versus, info, punish, reset, registerSummoner, handleSummoner }
+module.exports = {
+  setRanking,
+  handleRegisterSummoner,
+  getPlayerById,
+  handleRegister,
+  handleCommands,
+  versus,
+  info,
+  punish,
+  reset,
+  registerSummoner,
+  handleSummoner,
+  getObjPlayer,
+  playersRankedPortal
+}

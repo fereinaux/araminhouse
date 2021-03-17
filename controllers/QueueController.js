@@ -22,10 +22,10 @@ async function queueEmAndamentoExists() {
 }
 
 async function createQueue(ownerId, size, reopen) {
-  await queueModel.create({ status: 'aberta', reopen: reopen, ownerId: ownerId, size: size, date: new Date() })
+  await queueModel.create({ status: 'aberta', reopen: reopen, ownerId: ownerId, size: size, date: moment(new Date()).subtract(3,'hours').toDate() })
 
   if (reopen) {
-    const openQueueDate = new Date()
+    const openQueueDate = moment(new Date()).subtract(3,'hours').toDate()
     const queueCreated = new MessageEmbed()
       .setTitle(`Qeueue reaberta`)
       .setDescription(`**0/${size * 2}**
@@ -178,7 +178,7 @@ async function setJoin(message) {
         if (queueJoinExists.reopen) {
           const playersLastQueue = await queueModel.findOne({ status: "Concluída" }, ['players', 'date', 'endDate'], { sort: { date: -1 } })
           const startTime = moment(playersLastQueue.endDate);
-          const endTime = moment(new Date());
+          const endTime = moment(moment(new Date()).subtract(3,'hours').toDate());
           const duration = (endTime.diff(startTime))
           const minutes = parseInt(moment.duration(duration).asMinutes());
           const seconds = parseInt(moment.duration(duration).asSeconds());
@@ -365,7 +365,7 @@ async function setPoints(queue) {
       .setTitle(`Informações da Partida`)
       .setThumbnail(utilsRiot.getImageByChampionPath(p.champion.path))
       .setDescription(`**${win ? 'Vitória' : 'Derrota'}**
-        Data da Partida: ${moment(new Date()).format('DD/MM/YYYY HH:mm')}
+        Data da Partida: ${moment(new Date()).subtract(3,'hours').toDate().format('DD/MM/YYYY HH:mm')}
         Dano: ${Math.floor(p.stats.damage / 1000)}K
         KDA: ${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}
         Gold: ${Math.floor(p.stats.gold / 1000)}K
@@ -379,7 +379,7 @@ async function setPoints(queue) {
     const member = getMenctionById(p.id)
     member.send(pvtMsg)
   }
-  await queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', endDate: new Date() })
+  await queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', endDate: moment(new Date()).subtract(3,'hours').toDate() })
 }
 
 async function handleCronCheck() {

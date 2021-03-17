@@ -12,9 +12,12 @@
   "dependencies": {
     "axios": "^0.21.1",
     "bull": "^3.20.1",
+    "cors": "^2.8.5",
     "discord.js": "^12.5.1",
+    "express": "*",
     "moment": "^2.29.1",
     "mongoose": "^5.11.19",
-    "node-cron": "^2.0.3"
+    "node-cron": "^2.0.3",
+    "node-fetch": "^2.6.1"
   }
 }
