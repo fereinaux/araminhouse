@@ -138,7 +138,6 @@ async function info(message, id) {
         Derrotas: ${position.losses} 
         `
         : ''}     
-
         Acesse o perfil completo em: https://araminhouse.herokuapp.com/${id}
       `)
     .setColor(helper.infoColor)
