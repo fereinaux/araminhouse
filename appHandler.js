@@ -1,4 +1,5 @@
 const express = require('express');
+const PORT = process.env.PORT || 3000;
 const { URLSearchParams } = require('url');
 const fetch = require('node-fetch');
 const app = express();
@@ -74,4 +75,4 @@ app.get('/guilds', (req, res) => {
     ));
 });
 
-app.listen(53134, () => console.log('Ready'));
+app.listen(PORT, () =>  console.log(`Listening on Port ${PORT}`));
