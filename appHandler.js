@@ -29,18 +29,21 @@ app.get('/getPlayerById/:id', async (req, res) => {
   res.send(result)
 })
 
+app.get('/getAuth/:id', async (req, res) => {
+  const result = await playerController.getPlayerById(req.params.id)
+  res.send(result)
+})
+
 app.get('/', (req, res) => {
   const code = req.query.code;
-
-  const data = {
-    client_id: connections.discordClientId,
-    client_secret: connections.discordSecretId,
-    grant_type: "authorization_code",
-    redirect_uri: 'https://araminhouse.herokuapp.com/',
-    code: code,
-    scope: 'identify+guilds',
-  }
   if (code) {
+    const data = {
+      client_id: connections.discordClientId,
+      client_secret: connections.discordSecretId,
+      grant_type: "authorization_code",      
+      code: code,
+      scope: 'identify+guilds'
+    }
     fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       body: new URLSearchParams(data),
@@ -51,12 +54,11 @@ app.get('/', (req, res) => {
       .then(res => res.json())
       .then(data => res.redirect(`/guilds?token=${data.access_token}`));
   } else {
-    res.redirect([
+    res.send([
       'https://discordapp.com/oauth2/authorize',
       `?client_id=${connections.discordClientId}`,
       '&scope=identify+guilds',
-      '&response_type=code',
-      `&callback_uri=https://araminhouse.herokuapp.com/`
+      '&response_type=code'
     ].join(''));
   }
 });
@@ -70,9 +72,9 @@ app.get('/guilds', (req, res) => {
     .then(res => res.json())
     .then(data => playerController.getPlayerById(data.id).then(result => {
       result.discordAcessToken = req.query.token
-      playerModel.findOneAndUpdate({ id: data.id }, result, { new: true }).then(res.redirect(`https://araminhouse-frontened.herokuapp.com/${data.id}`))
+      playerModel.findOneAndUpdate({ id: data.id }, result, { new: true }).then(res.redirect(`https://araminhouse.herokuapp.com/${data.id}`))
     }
     ));
 });
 
-app.listen(PORT, () =>  console.log(`Listening on Port ${PORT}`));
+app.listen(PORT, () => console.log(`Listening on Port ${PORT}`));
