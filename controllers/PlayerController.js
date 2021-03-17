@@ -138,6 +138,8 @@ async function info(message, id) {
         Derrotas: ${position.losses} 
         `
         : ''}     
+
+        Acesse o perfil completo em: https://araminhouse.herokuapp.com/${id}
       `)
     .setColor(helper.infoColor)
 
@@ -422,7 +424,7 @@ async function handleRegisterSummoner(id, message, summonerName, newRegister) {
       whoTo.send(msg)
 
     } 
-    
+
     if (utilsBot.checkDM(message) && newRegister) {
       const msgCommands = new MessageEmbed()
         .setDescription(`Agora que teu cadastro está finalizado, vou te apresentar rapidamente os comandos do servidors e para que servem.`)
