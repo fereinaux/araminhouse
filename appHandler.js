@@ -36,7 +36,7 @@ app.get('/', (req, res) => {
     client_id: connections.discordClientId,
     client_secret: connections.discordSecretId,
     grant_type: "authorization_code",
-    redirect_uri: 'http://localhost:53134',
+    redirect_uri: 'https://araminhouse.herokuapp.com/',
     code: code,
     scope: 'identify+guilds',
   }
@@ -56,7 +56,7 @@ app.get('/', (req, res) => {
       `?client_id=${connections.discordClientId}`,
       '&scope=identify+guilds',
       '&response_type=code',
-      `&callback_uri=http://localhost:53134`
+      `&callback_uri=https://araminhouse.herokuapp.com/`
     ].join(''));
   }
 });
@@ -70,7 +70,7 @@ app.get('/guilds', (req, res) => {
     .then(res => res.json())
     .then(data => playerController.getPlayerById(data.id).then(result => {
       result.discordAcessToken = req.query.token
-      playerModel.findOneAndUpdate({ id: data.id }, result, { new: true }).then(res.redirect(`http://localhost:3000/${data.id}`))
+      playerModel.findOneAndUpdate({ id: data.id }, result, { new: true }).then(res.redirect(`https://araminhouse-frontened.herokuapp.com/${data.id}`))
     }
     ));
 });
