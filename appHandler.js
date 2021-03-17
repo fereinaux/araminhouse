@@ -1,5 +1,5 @@
 const express = require('express');
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 const { URLSearchParams } = require('url');
 const fetch = require('node-fetch');
 const app = express();
