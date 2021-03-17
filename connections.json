@@ -1,6 +1,8 @@
 {
   "token": "ODE4NDU1ODAyMzg5OTg3NDE5.YEYUXQ.10DcE0kfuH3t0CjQ7tDrnfdo69M",
   "connectionString": "mongodb+srv://reinaux:reinaux09@cluster0.b1ikh.gcp.mongodb.net/inhouse?authSource=admin&replicaSet=Cluster0-shard-0&readPreference=primary&appname=MongoDB%20Compass&ssl=true",
+  "discordClientId": "818672978832392252",
+  "discordSecretId": "eu57ZanurXkIjwoOaSl0S9t5bV8PSPM7",  
   "redisPswd": "A046dczQLT4GMIjEADy4TMGAYMaDrmEo",
   "redisHost": "redis-13519.c56.east-us.azure.cloud.redislabs.com",
   "redisPort": "13519"
