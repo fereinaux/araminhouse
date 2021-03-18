@@ -14,7 +14,11 @@ const { setRanking } = require('./PlayerController')
 const utilsRiot = require('../utils/riot')
 
 async function queueExists() {
-  const existsQueue = await queueModel.findOne({ $or: [{ status: 'aberta' }, { status: 'Em andamento' }] })
+  const existsQueue = await queueModel.findOne({ $or: [{ status: 'Aberta' }, { status: 'Em andamento' }] })
+  return existsQueue;
+}
+async function openedQueue() {
+  const existsQueue = await queueModel.findOne({ status: 'Aberta' })
   return existsQueue;
 }
 async function queueEmAndamentoExists() {
@@ -23,14 +27,14 @@ async function queueEmAndamentoExists() {
 }
 
 async function createQueue(ownerId, size, reopen) {
-  await queueModel.create({ status: 'aberta', reopen: reopen, ownerId: ownerId, size: size, date: moment(new Date()).subtract(3, 'hours').toDate() })
+  await queueModel.create({ status: 'Aberta', reopen: reopen, ownerId: ownerId, size: size, date: moment(new Date()).subtract(3, 'hours').toDate() })
 
   if (reopen) {
     const openQueueDate = moment(new Date()).subtract(3, 'hours').toDate()
     const queueCreated = new MessageEmbed()
-      .setTitle(`Qeueue reaberta`)
+      .setTitle(`Qeueue reAberta`)
       .setDescription(`**0/${size * 2}**
-    Durante 2 minutos a prioridade é de quem já estava no game anterior, após esse tempo a qeueue estará aberta a entrada de qualquer pessoa    
+    Durante 2 minutos a prioridade é de quem já estava no game anterior, após esse tempo a qeueue estará Aberta a entrada de qualquer pessoa    
     
     Hora da reabertura ${moment(openQueueDate).add(2, 'minutes').format('HH:mm')}
     `)
@@ -163,16 +167,16 @@ function mapTeam(team, arrElo) {
   }).join('%0D%0A'))
 }
 
-async function setJoin(message) {
+async function setJoin(id) {
   const queueJoinExists = await queueExists();
   if (!queueJoinExists)
     msgQueueNotExists()
   else {
     if (queueJoinExists.players.length < (queueJoinExists.size * 2)) {
       let players = queueJoinExists.players;
-      if (players.find(el => el.id == message.authorID)) {
+      if (players.find(el => el.id == id)) {
         const playerDuplicated = new MessageEmbed()
-          .setDescription(`${getMenctionById(message.authorID)} já está na Queue`)
+          .setDescription(`${getMenctionById(id)} já está na Queue`)
           .setColor(helper.errColor)
         getGeralTextChannel().send(playerDuplicated)
       } else {
@@ -184,8 +188,8 @@ async function setJoin(message) {
           const minutes = parseInt(moment.duration(duration).asMinutes());
           const seconds = parseInt(moment.duration(duration).asSeconds());
           if (minutes < 2) {
-            if (playersLastQueue.players.find(p => p.id === message.authorID)) {
-              await handleJoinPlayerQueue(message, players, queueJoinExists)
+            if (playersLastQueue.players.find(p => p.id === id)) {
+              await handleJoinPlayerQueue(id, players, queueJoinExists)
             } else {
               const playerQueue = new MessageEmbed()
                 .setDescription(`Ainda estamos em lista de prioridade por mais ${120 - seconds} segundos`)
@@ -193,10 +197,10 @@ async function setJoin(message) {
               getGeralTextChannel().send(playerQueue)
             }
           } else {
-            await handleJoinPlayerQueue(message, players, queueJoinExists)
+            await handleJoinPlayerQueue(id, players, queueJoinExists)
           }
         } else {
-          await handleJoinPlayerQueue(message, players, queueJoinExists)
+          await handleJoinPlayerQueue(id, players, queueJoinExists)
         }
       }
     } else {
@@ -208,14 +212,14 @@ async function setJoin(message) {
   }
 }
 
-async function handleJoinPlayerQueue(message, players, queueJoinExists) {
-  const player = await playerModel.findOne({ id: message.authorID })
-  players.push({ name: player.name, id: message.authorID, summoner: player.summoner })
-  await queueModel.updateOne({ status: 'aberta' }, { players: players }, { new: true })
-  await handleStart(queueJoinExists, message)
+async function handleJoinPlayerQueue(id, players, queueJoinExists) {
+  const player = await playerModel.findOne({ id:id })
+  players.push({ name: player.name, id: id, summoner: player.summoner })
+  await queueModel.updateOne({ status: 'Aberta' }, { players: players }, { new: true })
+  await handleStart(queueJoinExists, id)
 }
 
-async function handleStart(queueJoinExists, message) {
+async function handleStart(queueJoinExists, id) {
   if (queueJoinExists.players.length == (queueJoinExists.size * 2)) {
     const randomPlayers = queueJoinExists.players.sort(() => Math.random() - 0.5)
     const teamOne = randomPlayers.slice(0, queueJoinExists.size)
@@ -223,7 +227,7 @@ async function handleStart(queueJoinExists, message) {
 
     const arrElo = await getArrElo(teamOne, teamTwo)
 
-    await queueModel.updateOne({ status: 'aberta' }, { status: 'Em andamento', teamOne: teamOne, teamTwo: teamTwo })
+    await queueModel.updateOne({ status: 'Aberta' }, { status: 'Em andamento', teamOne: teamOne, teamTwo: teamTwo })
     const teamsDescription = `
             **Time 1**
             
@@ -241,30 +245,30 @@ async function handleStart(queueJoinExists, message) {
 
   } else {
     const playerQueue = new MessageEmbed()
-      .setDescription(`**${getMenctionById(message.authorID)} entrou na Queue**
+      .setDescription(`**${getMenctionById(id)} entrou na Queue**
             **${queueJoinExists.players.length}/${queueJoinExists.size * 2}**`)
       .setColor(helper.okColor)
     getGeralTextChannel().send(playerQueue)
   }
 }
 
-async function leaveQueue(message) {
+async function leaveQueue(id) {
   const queue = await queueExists();
-  if (queue && queue.status == 'aberta') {
-    if (queue.players.find(p => p.id == message.author.id)) {
-      if (queue.ownerId == message.author.id) {
+  if (queue && queue.status == 'Aberta') {
+    if (queue.players.find(p => p.id == id)) {
+      if (queue.ownerId == id) {
         const msgCancelada = new MessageEmbed()
           .setTitle(`Queue cancelada!`)
           .setColor(helper.errColor)
         await queueModel.updateOne({ _id: queue._id }, { status: 'Canelada' })
         getGeralTextChannel().send(msgCancelada)
       } else {
-        queue.players = queue.players.filter(p => p.id != message.author.id)
+        queue.players = queue.players.filter(p => p.id != id)
 
         await queueModel.updateOne({ _id: queue._id }, queue)
 
         const msgOk = new MessageEmbed()
-          .setDescription(`**${getMenctionById(message.author.id)} saiu da Queue**
+          .setDescription(`**${getMenctionById(id)} saiu da Queue**
         **${queue.players.length}/${queue.size * 2}**`)
           .setColor(helper.okColor)
           .setColor(helper.okColor)
@@ -292,9 +296,9 @@ async function clearQueue(message) {
     .setTitle(`Queue cancelada!`)
     .setColor(helper.errColor)
   if (queue) {
-    if (queue.status == 'aberta') {
+    if (queue.status == 'Aberta') {
       if (queue.ownerId == message.author.id || isAdm(message.member)) {
-        await queueModel.updateOne({ status: 'aberta' }, { status: 'Canelada' });
+        await queueModel.updateOne({ status: 'Aberta' }, { status: 'Canelada' });
         getGeralTextChannel().send(msgCancelada)
       } else {
         const msgNotOwner = new MessageEmbed()
@@ -436,7 +440,6 @@ async function setWin(message, time) {
           await playerModel.updateOne({ id: player.id }, { $inc: { elo: -pontosLoss } })
         }
       } else {
-        console.log(queue.teamOne.entries())
         for (const [idx,player] of queue.teamTwo.entries()) {
           await playerModel.updateOne({ id: player.id }, { $inc: { elo: pontosWin } })
         }
@@ -690,6 +693,7 @@ module.exports = {
   setJoin,
   setQueue,
   queueExists,
+  openedQueue,
   queueEmAndamentoExists,
   clearQueue,
   leaveQueue,

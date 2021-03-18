@@ -37,13 +37,13 @@ bot.on('message', async message => {
         await queueController.setQueue(message)
         break;
       case '!join':
-        Queue.add(message);
+        Queue.add({id: message.author.id} );
         break;
       case '!ranking':
         await playerController.setRanking()
         break;
       case '!leave':
-        await queueController.leaveQueue(message)
+        await queueController.leaveQueue(message.author.id)
         break
       case '!clearqueue':
         await queueController.clearQueue(message)
@@ -97,7 +97,11 @@ bot.on('guildMemberAdd', member => {
 });
 
 Queue.process(async (job) => {
-  return await queueController.setJoin(job.data)
+  return await queueController.setJoin(job.data.id)
 });
 
 bot.login(connections.token);
+
+module.exports = {
+   Queue
+}

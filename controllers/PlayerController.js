@@ -309,6 +309,10 @@ async function getPlayerById(id) {
   const playerExists = await playerModel.findOne({ id: id })
   return playerExists
 }
+async function getPlayerByDiscordToken(id) {
+  const playerExists = await playerModel.findOne({ discordAcessToken: id })
+  return playerExists
+}
 
 async function getPlayersRanked() {
   const players = await playerModel.find({}, ['id', 'name', 'elo', 'maxElo'], { sort: { elo: -1 } })
@@ -461,8 +465,8 @@ function handleCommands(id) {
           - Em sua primeira versão, pergunta ao usuário o tamanho da queue, o mesmo deve Reagir com um dos Emojis: 3⃣, 4⃣ ou 5⃣
           - Em sua segunda versão, criará a Queue com o número representado pelo "X"`)
     .addField('!clearqueue', `
-          - Caso você seja o dono da queue que está aberta, cancelará a mesma`)
-    .addField('!leavequeue', `
+          - Caso você seja o dono da queue que está Aberta, cancelará a mesma`)
+    .addField('!leave', `
           - Caso você esteja em uma queue, sairá da mesma`)
     .addField('!join', `
           - Se junta a queue em andamento`)
@@ -506,5 +510,6 @@ module.exports = {
   registerSummoner,
   handleSummoner,
   getObjPlayer,
+  getPlayerByDiscordToken,  
   playersRankedPortal
 }
