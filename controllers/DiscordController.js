@@ -24,6 +24,9 @@ bot.on('message', async message => {
   if (!checkDM(message)) {
     const arrMsg = message.content.split(' ')
     switch (arrMsg[0].toLowerCase()) {
+      case '!win':
+        await queueController.setWin(message,arrMsg[1])
+        break;
       case '!mute':
         await muteAll(message, true)
         break

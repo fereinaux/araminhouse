@@ -155,7 +155,7 @@ function getMemberById(id) {
 function setEloByPlayer(player) {
   const member = getMemberById(player.id);
 
-  if (!member.hasPermission("ADMINISTRATOR")) {
+  if (member && !member.hasPermission("ADMINISTRATOR")) {
     member.setNickname(`[${player.elo}]${member.user.username}`);
   }
 }

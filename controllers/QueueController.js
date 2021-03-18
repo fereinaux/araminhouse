@@ -3,6 +3,7 @@ const playerModel = require('../models/Player')
 const moment = require('moment')
 const helper = require('../helper.json')
 const {
+  noPermission,
   isAdm,
   getMenctionById,
   getEmojiByName,
@@ -22,10 +23,10 @@ async function queueEmAndamentoExists() {
 }
 
 async function createQueue(ownerId, size, reopen) {
-  await queueModel.create({ status: 'aberta', reopen: reopen, ownerId: ownerId, size: size, date: moment(new Date()).subtract(3,'hours').toDate() })
+  await queueModel.create({ status: 'aberta', reopen: reopen, ownerId: ownerId, size: size, date: moment(new Date()).subtract(3, 'hours').toDate() })
 
   if (reopen) {
-    const openQueueDate = moment(new Date()).subtract(3,'hours').toDate()
+    const openQueueDate = moment(new Date()).subtract(3, 'hours').toDate()
     const queueCreated = new MessageEmbed()
       .setTitle(`Qeueue reaberta`)
       .setDescription(`**0/${size * 2}**
@@ -178,7 +179,7 @@ async function setJoin(message) {
         if (queueJoinExists.reopen) {
           const playersLastQueue = await queueModel.findOne({ status: "Concluída" }, ['players', 'date', 'endDate'], { sort: { date: -1 } })
           const startTime = moment(playersLastQueue.endDate);
-          const endTime = moment(moment(new Date()).subtract(3,'hours').toDate());
+          const endTime = moment(moment(new Date()).subtract(3, 'hours').toDate());
           const duration = (endTime.diff(startTime))
           const minutes = parseInt(moment.duration(duration).asMinutes());
           const seconds = parseInt(moment.duration(duration).asSeconds());
@@ -365,7 +366,7 @@ async function setPoints(queue) {
       .setTitle(`Informações da Partida`)
       .setThumbnail(utilsRiot.getImageByChampionPath(p.champion.path))
       .setDescription(`**${win ? 'Vitória' : 'Derrota'}**
-        Data da Partida: ${moment(new Date()).subtract(3,'hours').toDate().format('DD/MM/YYYY HH:mm')}
+        Data da Partida: ${moment(new Date()).subtract(3, 'hours').toDate().format('DD/MM/YYYY HH:mm')}
         Dano: ${Math.floor(p.stats.damage / 1000)}K
         KDA: ${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}
         Gold: ${Math.floor(p.stats.gold / 1000)}K
@@ -379,7 +380,7 @@ async function setPoints(queue) {
     const member = getMenctionById(p.id)
     member.send(pvtMsg)
   }
-  await queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', endDate: moment(new Date()).subtract(3,'hours').toDate() })
+  await queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', endDate: moment(new Date()).subtract(3, 'hours').toDate() })
 }
 
 async function handleCronCheck() {
@@ -398,6 +399,63 @@ async function handleCronCheck() {
       if (response) {
         await handlePlayerInGame(response, queue)
       }
+    }
+  }
+}
+
+async function setWin(message, time) {
+  if (!isAdm(message.member)) {
+    noPermission(message)
+  } else {
+
+    const queue = await queueEmAndamentoExists()
+    if (queue) {
+      let pontosWin = 0
+      let pontosLoss = 0
+      switch (queue.size) {
+        case 3:
+          pontosWin = 3
+          pontosLoss = 2
+          break;
+        case 4:
+          pontosWin = 5
+          pontosLoss = 3
+          break;
+        case 5:
+          pontosWin = 7
+          pontosLoss = 4
+          break;
+        default:
+          break;
+      }
+      if (time == 1) {
+        for (const [idx,player] of queue.teamOne.entries()) {
+          await playerModel.updateOne({ id: player.id }, { $inc: { elo: pontosWin } })
+        }
+        for (const [idx,player] of queue.teamTwo.entries()) {
+          await playerModel.updateOne({ id: player.id }, { $inc: { elo: -pontosLoss } })
+        }
+      } else {
+        console.log(queue.teamOne.entries())
+        for (const [idx,player] of queue.teamTwo.entries()) {
+          await playerModel.updateOne({ id: player.id }, { $inc: { elo: pontosWin } })
+        }
+        for (const [idx,player] of queue.teamOne.entries()) {
+          await playerModel.updateOne({ id: player.id }, { $inc: { elo: -pontosLoss } })
+        }
+      }
+      const msg = new MessageEmbed()
+        .setDescription(`**Partida Finalizada** 
+          **Time ${time} Venceu**
+        `)
+        .setColor(helper.okColor)
+      getGeralTextChannel().send(msg)
+      await queueModel.updateOne({ status: 'Em andamento' }, { status: 'Concluída', endDate: moment(new Date()).subtract(3, 'hours').toDate() })
+      setRanking()
+      await createQueue(queue.ownerId, queue.size, true)
+
+    } else {
+      msgQueueNotExists()
     }
   }
 }
@@ -499,11 +557,11 @@ var groupBy = function (xs, key) {
 };
 
 async function getResumeByDate(beginDate, endDate, type) {
-  
+
   const queues = await queueModel.find({
     date: {
-      $gte: moment(beginDate).add(3,'hours').toDate(),
-      $lt: moment(endDate).add(3,'hours').toDate()
+      $gte: moment(beginDate).add(3, 'hours').toDate(),
+      $lt: moment(endDate).add(3, 'hours').toDate()
     },
     status: 'Concluída'
   })
@@ -541,7 +599,7 @@ async function getResumeByDate(beginDate, endDate, type) {
     if (p && p.champion) {
       arrChampionsLosses.push(p.champion)
     }
-  })  
+  })
 
   const monstLosePlayer = objToArray(groupBy(arrPlayersLosses, 'id')).sort((a, b) => b.length - a.length)[0]
   const mostWinsPlayer = objToArray(groupBy(arrPlayersWins, 'id')).sort((a, b) => b.length - a.length)[0]
@@ -622,7 +680,10 @@ async function monthResume() {
   await getResumeByDate(date.startOf('month').toDate(), date.endOf('month').toDate(), 'month')
 }
 
+
+
 module.exports = {
+  setWin,
   monthResume,
   weekResume,
   dayResume,
