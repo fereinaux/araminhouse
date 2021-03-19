@@ -94,6 +94,11 @@ app.post('/join', (req, res) => {
   res.send()
 })
 
+app.post('/queue', (req, res) => {
+  queueController.createQueue(req.body.id, req.body.size, false)
+  res.send()
+})
+
 app.post('/leave', (req, res) => {
   queueController.leaveQueue(req.body.id)
   res.send()

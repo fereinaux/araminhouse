@@ -693,6 +693,7 @@ module.exports = {
   setJoin,
   setQueue,
   queueExists,
+  createQueue,
   openedQueue,
   queueEmAndamentoExists,
   clearQueue,
