@@ -327,7 +327,7 @@ async function playersRankedPortal() {
       id: p.id,
       name: p.name,
       elo: p.elo,
-      avatarURL: utilsBot.getMenctionById(p.id).user.avatarURL()
+      avatarURL: utilsBot.getMenctionById(p.id) ? utilsBot.getMenctionById(p.id).user.avatarURL() : ''
     })
   })
   return result
