@@ -370,7 +370,7 @@ async function setPoints(queue) {
       .setTitle(`Informações da Partida`)
       .setThumbnail(utilsRiot.getImageByChampionPath(p.champion.path))
       .setDescription(`**${win ? 'Vitória' : 'Derrota'}**
-        Data da Partida: ${moment(new Date()).subtract(3, 'hours').toDate().format('DD/MM/YYYY HH:mm')}
+       
         Dano: ${Math.floor(p.stats.damage / 1000)}K
         KDA: ${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}
         Gold: ${Math.floor(p.stats.gold / 1000)}K
