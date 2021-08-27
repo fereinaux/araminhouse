@@ -213,7 +213,7 @@ async function setJoin(id) {
 }
 
 async function handleJoinPlayerQueue(id, players, queueJoinExists) {
-  const player = await playerModel.findOne({ id:id })
+  const player = await playerModel.findOne({ id: id })
   players.push({ name: player.name, id: id, summoner: player.summoner })
   await queueModel.updateOne({ status: 'Aberta' }, { players: players }, { new: true })
   await handleStart(queueJoinExists, id)
@@ -367,20 +367,23 @@ async function setPoints(queue) {
     await playerModel.findOneAndUpdate({ id: p.id }, player)
     const streak = await getStreak(p.id, win)
     const pvtMsg = new MessageEmbed()
-      .setTitle(`Informações da Partida`)
-      .setThumbnail(utilsRiot.getImageByChampionPath(p.champion.path))
-      .setDescription(`**${win ? 'Vitória' : 'Derrota'}**
-       
-        Dano: ${Math.floor(p.stats.damage / 1000)}K
-        KDA: ${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}
-        Gold: ${Math.floor(p.stats.gold / 1000)}K
-                 
-        Rating: ${player.elo}
-        Maior Rating: ${player.maxElo}
-        ${win ? 'Winning' : 'Losing'} Streak: ${streak}
-      `)
-      .setColor(win ? helper.okColor : helper.errColor)
-
+    .setTitle(`Informações da Partida`)
+    
+    .setDescription(`**${win ? 'Vitória' : 'Derrota'}**
+    
+    Dano: ${Math.floor(p.stats.damage / 1000)}K
+    KDA: ${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}
+    Gold: ${Math.floor(p.stats.gold / 1000)}K
+    
+    Rating: ${player.elo}
+    Maior Rating: ${player.maxElo}
+    ${win ? 'Winning' : 'Losing'} Streak: ${streak}
+    `)
+    .setColor(win ? helper.okColor : helper.errColor)
+    
+    if (p.champion) {
+      pvtMsg.setThumbnail(utilsRiot.getImageByChampionPath(p.champion.path))
+    }
     const member = getMenctionById(p.id)
     member.send(pvtMsg)
   }
@@ -433,17 +436,17 @@ async function setWin(message, time) {
           break;
       }
       if (time == 1) {
-        for (const [idx,player] of queue.teamOne.entries()) {
+        for (const [idx, player] of queue.teamOne.entries()) {
           await playerModel.updateOne({ id: player.id }, { $inc: { elo: pontosWin } })
         }
-        for (const [idx,player] of queue.teamTwo.entries()) {
+        for (const [idx, player] of queue.teamTwo.entries()) {
           await playerModel.updateOne({ id: player.id }, { $inc: { elo: -pontosLoss } })
         }
       } else {
-        for (const [idx,player] of queue.teamTwo.entries()) {
+        for (const [idx, player] of queue.teamTwo.entries()) {
           await playerModel.updateOne({ id: player.id }, { $inc: { elo: pontosWin } })
         }
-        for (const [idx,player] of queue.teamOne.entries()) {
+        for (const [idx, player] of queue.teamOne.entries()) {
           await playerModel.updateOne({ id: player.id }, { $inc: { elo: -pontosLoss } })
         }
       }
@@ -485,9 +488,11 @@ async function handleQueueHasMatchId(queue, response) {
       win: partcipantStats.win,
       kda: (partcipantStats.kills + partcipantStats.assists) / (partcipantStats.deaths > 0 ? partcipantStats.deaths : 1)
     }
-    p.champion = {
-      name: champion.id,
-      path: champion.image.full
+    if (p.champion) {
+      p.champion = {
+        name: champion.id,
+        path: champion.image.full
+      }
     }
   })
 
@@ -503,37 +508,48 @@ async function handleQueueHasMatchId(queue, response) {
   const msg = new MessageEmbed()
     .setDescription(`**Partida Finalizada** 
         **Time ${time == 'Win' ? 1 : 2} Venceu**
-      `)
+        `)
     .setColor(helper.okColor)
 
-  const msgTopDamage = new MessageEmbed()
-    .setTitle(`Top Damage`)
-    .setThumbnail(utilsRiot.getImageByChampionPath(mostDamage.champion.path))
-    .setDescription(`
-    ${getMenctionById(mostDamage.id)} - ${Math.floor(mostDamage.stats.damage / 1000)}K de dano
-    `)
-    .setColor(helper.infoColor)
-
-  const msgKDA = new MessageEmbed()
-    .setTitle(`KDA Player`)
-    .setThumbnail(utilsRiot.getImageByChampionPath(kdaPlayer.champion.path))
-    .setDescription(`
-    ${getMenctionById(kdaPlayer.id)} - ${kdaPlayer.stats.kills}/${kdaPlayer.stats.deaths}/${kdaPlayer.stats.assists}
-    `)
-    .setColor(helper.infoColor)
-
-  const msgFeeder = new MessageEmbed()
-    .setTitle(`Feeder`)
-    .setThumbnail(utilsRiot.getImageByChampionPath(feeder.champion.path))
-    .setDescription(`
-    ${getMenctionById(feeder.id)} - ${feeder.stats.deaths} mortes
-    `)
-    .setColor(helper.infoColor)
-
   getGeralTextChannel().send(msg)
-  getGeralTextChannel().send(msgTopDamage)
-  getGeralTextChannel().send(msgKDA)
-  getGeralTextChannel().send(msgFeeder)
+  if (mostDamage.champion) {
+
+    const msgTopDamage = new MessageEmbed()
+      .setTitle(`Top Damage`)
+      .setThumbnail(utilsRiot.getImageByChampionPath(mostDamage.champion.path))
+      .setDescription(`
+  ${getMenctionById(mostDamage.id)} - ${Math.floor(mostDamage.stats.damage / 1000)}K de dano
+  `)
+      .setColor(helper.infoColor)
+    getGeralTextChannel().send(msgTopDamage)
+  }
+
+  if (kdaPlayer.champion) {
+
+    const msgKDA = new MessageEmbed()
+      .setTitle(`KDA Player`)
+      .setThumbnail(utilsRiot.getImageByChampionPath(kdaPlayer.champion.path))
+      .setDescription(`
+  ${getMenctionById(kdaPlayer.id)} - ${kdaPlayer.stats.kills}/${kdaPlayer.stats.deaths}/${kdaPlayer.stats.assists}
+  `)
+      .setColor(helper.infoColor)
+
+    getGeralTextChannel().send(msgKDA)
+  }
+
+  if (feeder.champion) {
+
+    const msgFeeder = new MessageEmbed()
+      .setTitle(`Feeder`)
+      .setThumbnail(utilsRiot.getImageByChampionPath(feeder.champion.path))
+      .setDescription(`
+  ${getMenctionById(feeder.id)} - ${feeder.stats.deaths} mortes
+  `)
+      .setColor(helper.infoColor)
+
+
+    getGeralTextChannel().send(msgFeeder)
+  }
   await setPoints(queue)
   setRanking()
   await createQueue(queue.ownerId, queue.size, true)
