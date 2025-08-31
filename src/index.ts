@@ -11,6 +11,10 @@ import { PlayerController } from "./controllers/PlayerController";
 import { AppConfig } from "./types";
 import * as fs from "fs";
 import * as path from "path";
+import dotenv from "dotenv";
+
+// Carrega variáveis de ambiente
+dotenv.config();
 
 // Carrega configuração do arquivo JSON
 const configPath = path.join(__dirname, "config.json");
@@ -23,7 +27,7 @@ try {
   config = {
     port: jsonConfig.application?.port || 3000,
     discord: {
-      token: jsonConfig.discord?.token || "",
+      token: process.env.DISCORD_TOKEN || jsonConfig.discord?.token || "",
       clientId: jsonConfig.discord?.clientId || "",
       guildId: "", // Não configurado no JSON
     },
@@ -46,7 +50,12 @@ try {
     },
   };
 
-  console.log("✅ Configuração carregada do arquivo config.json");
+  // Valida se o token está presente
+  if (!config.discord.token) {
+    throw new Error("DISCORD_TOKEN é obrigatório (defina no arquivo .env ou config.json)");
+  }
+
+  console.log("✅ Configuração carregada do arquivo config.json com token das variáveis de ambiente");
 } catch (error) {
   console.error("❌ Erro ao carregar configuração:", error);
   process.exit(1);

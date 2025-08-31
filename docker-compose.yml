@@ -12,6 +12,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
     volumes:
       # Volume para persistir o banco de dados
       - aramhouse_data:/app/dist
