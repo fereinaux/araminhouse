@@ -46,7 +46,7 @@ COPY --from=builder /app/dist ./dist
 COPY src/config.json ./dist/
 
 # Copia banco de dados se existir
-COPY *.db ./dist/ 2>/dev/null || true
+COPY *.db ./dist/
 
 # Define propriedade do diretório para o usuário nodejs
 RUN chown -R nodejs:nodejs /app

@@ -67,6 +67,6 @@ Dockerfile*
 .dockerignore
 
 # Outros
-*.db
+# *.db  # Comentado para permitir cópia do banco de dados
 *.sqlite
 *.sqlite3
