@@ -52,10 +52,14 @@ try {
 
   // Valida se o token está presente
   if (!config.discord.token) {
-    throw new Error("DISCORD_TOKEN é obrigatório (defina no arquivo .env ou config.json)");
+    throw new Error(
+      "DISCORD_TOKEN é obrigatório (defina no arquivo .env ou config.json)"
+    );
   }
 
-  console.log("✅ Configuração carregada do arquivo config.json com token das variáveis de ambiente");
+  console.log(
+    "✅ Configuração carregada do arquivo config.json com token das variáveis de ambiente"
+  );
 } catch (error) {
   console.error("❌ Erro ao carregar configuração:", error);
   process.exit(1);
