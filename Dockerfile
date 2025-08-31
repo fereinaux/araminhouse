@@ -11,8 +11,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Instala dependências
-RUN npm install --omit=dev && npm cache clean --force
+# Instala todas as dependências (incluindo dev para build do TypeScript)
+RUN npm install && npm cache clean --force
 
 # Copia código fonte
 COPY src/ ./src/
