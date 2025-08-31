@@ -568,12 +568,12 @@ export class SlashCommandService {
         }
 
         // Adiciona comandos para finalizar
-                          matchEmbed.addFields({
-                    name: "🎯 Para finalizar a partida, use:",
-                    value:
-                      "`/admin finish-match winner:team1`\n`/admin finish-match winner:team2`",
-                    inline: false,
-                  });
+        matchEmbed.addFields({
+          name: "🎯 Para finalizar a partida, use:",
+          value:
+            "`/admin finish-match winner:team1`\n`/admin finish-match winner:team2`",
+          inline: false,
+        });
 
         await interaction.reply({
           embeds: [matchEmbed],
@@ -1474,10 +1474,15 @@ export class SlashCommandService {
             }
 
             // Calcula a duração da partida automaticamente
-            const matchStartTime = queueToFinish.startedAt || queueToFinish.createdAt;
+            const matchStartTime =
+              queueToFinish.startedAt || queueToFinish.createdAt;
             const matchEndTime = new Date();
-            const durationInMs = matchEndTime.getTime() - matchStartTime.getTime();
-            const durationInMinutes = Math.max(1, Math.floor(durationInMs / (1000 * 60)));
+            const durationInMs =
+              matchEndTime.getTime() - matchStartTime.getTime();
+            const durationInMinutes = Math.max(
+              1,
+              Math.floor(durationInMs / (1000 * 60))
+            );
 
             // Obtém os times formados
             const teams = await Queue.formTeams(queueToFinish.id);
