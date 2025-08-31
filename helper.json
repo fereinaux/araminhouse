@@ -1,23 +1,18 @@
 {
   "comandos": [
-    "!register",
-    "!join",
-    "!queue",
-    "!clearqueue",
-    "!ranking",
-    "!win",
-    "!leave",
-    "!info",
-    "!versus",
-    "!punish"
+    "!queue - Criar fila",
+    "!join - Entrar na fila",
+    "!leave - Sair da fila",
+    "!clearqueue - Cancelar fila",
+    "!ranking - Ver ranking",
+    "!info - Ver informações do jogador",
+    "!versus - Comparar jogadores",
+    "!reset - Resetar perfil"
   ],
   "splitTeams": false,
-  "lolApiKey": "RGAPI-53cbcf9e-29f7-4a5c-bfdc-9f98619ad7a0",
-  "lolBaseUrl": "https://br1.api.riotgames.com",
   "errColor": 15158332,
   "okColor": 3066993,
   "infoColor": 3447003,
-  "teste": "vaor",
   "pointsConfig": [
     {
       "size": 3,
@@ -38,7 +33,16 @@
   "specialRoles": [
     {
       "name": "Registrado",
-      "permissions": ["SEND_MESSAGES","ADD_REACTIONS", "VIEW_CHANNEL","CONNECT","SPEAK","USE_VAD","READ_MESSAGE_HISTORY","CREATE_INSTANT_INVITE"]
+      "permissions": [
+        "SEND_MESSAGES",
+        "ADD_REACTIONS",
+        "VIEW_CHANNEL",
+        "CONNECT",
+        "SPEAK",
+        "USE_VAD",
+        "READ_MESSAGE_HISTORY",
+        "CREATE_INSTANT_INVITE"
+      ]
     }
   ],
   "roles": [

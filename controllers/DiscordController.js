@@ -1,23 +1,15 @@
-const { bot, setRoles, setChannels, checkDM, muteAll, setTimer } = require('../utils/bot')
+const { bot, setRoles, setChannels, checkDM, muteAll } = require('../utils/bot')
 const { MessageEmbed } = require('discord.js')
 const helper = require('../helper.json')
 const connections = require('../connections.json')
 const playerController = require('./PlayerController')
 const queueController = require('./QueueController')
-const Bull = require("bull");
-const Queue = new Bull("Queue", {
-  redis:
-  {
-    port: connections.redisPort,
-    host: connections.redisHost,
-    password: connections.redisPswd
-  }
-});
 
 bot.on('ready', async function () {
   await bot.guilds.cache.first().members.fetch({ cache: true })
   await setRoles();
   await setChannels();
+  console.log('Bot do Discord está online!');
 })
 
 bot.on('message', async message => {
@@ -25,7 +17,7 @@ bot.on('message', async message => {
     const arrMsg = message.content.split(' ')
     switch (arrMsg[0].toLowerCase()) {
       case '!win':
-        await queueController.setWin(message,arrMsg[1])
+        await queueController.setWin(message, arrMsg[1])
         break;
       case '!mute':
         await muteAll(message, true)
@@ -37,17 +29,26 @@ bot.on('message', async message => {
         await queueController.setQueue(message)
         break;
       case '!join':
-        Queue.add({id: message.author.id} );
+        await queueController.setJoin(message.author.id)
+        message.channel.send('✅ Você entrou na fila!')
         break;
       case '!ranking':
-        await playerController.setRanking()
+        const rankingEmbed = await playerController.setRanking()
+        if (rankingEmbed) {
+          message.channel.send(rankingEmbed)
+        }
         break;
       case '!leave':
-        await queueController.leaveQueue(message.author.id)
+        const left = await queueController.leaveQueue(message.author.id)
+        if (left) {
+          message.channel.send('✅ Você saiu da fila!')
+        } else {
+          message.channel.send('❌ Você não estava em nenhuma fila!')
+        }
         break
       case '!clearqueue':
         await queueController.clearQueue(message)
-        break
+        break;
       case '!versus':
         if (arrMsg.length == 3) {
           await playerController.versus(message, arrMsg[1], arrMsg[2])
@@ -64,9 +65,6 @@ bot.on('message', async message => {
           await playerController.punish(message)
         }
         break
-      case '!summoner':
-        await playerController.registerSummoner(message)
-        break
       default:
         break;
     }
@@ -77,17 +75,13 @@ bot.on('message', async message => {
         await playerController.info(message)
         break;
       case '!commands':
-        await playerController.handleCommands(message.author.id)
+        const commands = await playerController.handleCommands(message.author.id)
+        message.channel.send(commands)
         break;
-      case '!summoner':
-        const summonerName = message.content.split('"')[1]
-        await playerController.handleRegisterSummoner(message.author.id, message, summonerName)
-        break
-
       default:
-        await playerController.handleSummoner(message)
+        const defaultCommands = await playerController.handleCommands(message.author.id)
+        message.channel.send(defaultCommands)
         break;
-
     }
   }
 })
@@ -96,12 +90,38 @@ bot.on('guildMemberAdd', member => {
   playerController.handleRegister(member)
 });
 
-Queue.process(async (job) => {
-  return await queueController.setJoin(job.data.id)
-});
+// Sistema simples de filas em memória (substitui Redis/Bull)
+const queueProcessor = {
+  isProcessing: false,
+  
+  async processQueue() {
+    if (this.isProcessing) return;
+    
+    this.isProcessing = true;
+    
+    try {
+      const activeQueue = await queueController.queueExists();
+      if (activeQueue && activeQueue.players.length >= activeQueue.size) {
+        await queueController.startMatch(activeQueue.id);
+      }
+    } catch (error) {
+      console.error('Erro ao processar fila:', error);
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+};
 
-bot.login(connections.token);
+// Processa filas a cada 5 segundos
+setInterval(() => {
+  queueProcessor.processQueue();
+}, 5000);
 
 module.exports = {
-   Queue
-}
+  bot,
+  Queue: {
+    add: async (data) => {
+      await queueController.setJoin(data.id);
+    }
+  }
+};

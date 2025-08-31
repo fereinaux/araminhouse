@@ -1,5 +1,5 @@
 const express = require('express');
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 3000;
 const { URLSearchParams } = require('url');
 const fetch = require('node-fetch');
 const app = express();
@@ -12,13 +12,11 @@ const io = require("socket.io")(server, {
   }
 })
 
-
 let interval;
 
 io.on('connection', async (client) => {
   client.on('findQueue', async () => {
     setInterval(async () => {
-
       const queue = await queueController.queueExists()
       client.emit('queueFound', queue);
     }, 1000);
@@ -26,13 +24,9 @@ io.on('connection', async (client) => {
 });
 
 const connections = require('./connections.json')
-const playerModel = require('./models/Player')
-const queueModel = require('./models/Queue')
 const playerController = require('./controllers/PlayerController')
 const queueController = require('./controllers/QueueController')
 const discordController = require('./controllers/DiscordController')
-const utilsBot = require('./utils/bot')
-const utilsRiot = require('./utils/riot')
 const cors = require('cors');
 const bodyParser = require('body-parser')
 
@@ -44,20 +38,31 @@ app.use(function (req, res, next) {
   next();
 });
 
-
 app.get('/getRanking', async (req, res) => {
-  const result = await playerController.playersRankedPortal()
-  res.send(result)
+  try {
+    const result = await playerController.playersRankedPortal()
+    res.json(result)
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao buscar ranking' })
+  }
 })
 
 app.get('/getPlayerById/:id', async (req, res) => {
-  const result = await playerController.getObjPlayer(req.params.id)
-  res.send(result)
+  try {
+    const result = await playerController.getObjPlayer(req.params.id)
+    res.json(result)
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao buscar jogador' })
+  }
 })
 
 app.get('/getAuth/:id', async (req, res) => {
-  const result = await playerController.getPlayerByDiscordToken(req.params.id)
-  res.send(result)
+  try {
+    const result = await playerController.getPlayerByDiscordToken(req.params.id)
+    res.json(result)
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao buscar autenticação' })
+  }
 })
 
 app.get('/auth', (req, res) => {
@@ -89,19 +94,31 @@ app.get('/auth', (req, res) => {
   }
 });
 
-app.post('/join', (req, res) => {
-  discordController.Queue.add({id: req.body.id})
-  res.send()
+app.post('/join', async (req, res) => {
+  try {
+    await queueController.setJoin(req.body.id)
+    res.json({ success: true })
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao entrar na fila' })
+  }
 })
 
-app.post('/queue', (req, res) => {
-  queueController.createQueue(req.body.id, req.body.size, false)
-  res.send()
+app.post('/queue', async (req, res) => {
+  try {
+    await queueController.createQueue(req.body.size || 5)
+    res.json({ success: true })
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao criar fila' })
+  }
 })
 
-app.post('/leave', (req, res) => {
-  queueController.leaveQueue(req.body.id)
-  res.send()
+app.post('/leave', async (req, res) => {
+  try {
+    await queueController.leaveQueue(req.body.id)
+    res.json({ success: true })
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao sair da fila' })
+  }
 })
 
 app.get('/guilds', (req, res) => {
@@ -111,14 +128,16 @@ app.get('/guilds', (req, res) => {
     },
   })
     .then(res => res.json())
-    .then(data => playerController.getPlayerById(data.id).then(result => {
-      result.discordAcessToken = req.query.token
-      playerModel.findOneAndUpdate({ id: data.id }, result, { new: true }).then(res.redirect(
-        `https://araminhouse.herokuapp.com/login/${req.query.token}`
-        // `https://araminhouse.herokuapp.com/login/${req.query.token}`
-      ))
-    }
-    ));
+    .then(data => {
+      res.json({
+        success: true,
+        user: data,
+        message: 'Autenticação realizada com sucesso'
+      })
+    })
+    .catch(error => {
+      res.status(500).json({ error: 'Erro na autenticação' })
+    });
 });
 
-server.listen(PORT, () => console.log(`Listening on Port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));

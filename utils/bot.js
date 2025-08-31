@@ -1,5 +1,16 @@
 const Discord = require('discord.js')
-const bot = new Discord.Client()
+const { Intents } = Discord;
+
+// Configurar intents necessárias
+const intents = new Intents([
+  Intents.FLAGS.GUILDS,
+  Intents.FLAGS.GUILD_MESSAGES,
+  Intents.FLAGS.GUILD_MEMBERS,
+  Intents.FLAGS.GUILD_VOICE_STATES,
+  Intents.FLAGS.DIRECT_MESSAGES
+]);
+
+const bot = new Discord.Client({ intents });
 const helper = require('../helper.json')
 
 function checkDM(message) {
@@ -7,7 +18,7 @@ function checkDM(message) {
 }
 
 function isAdm(member) {
-  return member.hasPermission("ADMINISTRATOR")
+  return member.permissions.has("ADMINISTRATOR")
 }
 
 function getMenctionById(id) {
@@ -20,7 +31,7 @@ function getEmojiByName(name) {
 
 function noPermission(message) {
   const msg = new Discord.MessageEmbed()
-    .setDescription(`${getMenctionById(message.author.id)}, você não permissão para fazer isso`)
+    .setDescription(`${getMenctionById(message.author.id)}, você não tem permissão para fazer isso`)
     .setColor(helper.errColor)
 
   message.channel.send(msg)
@@ -28,7 +39,9 @@ function noPermission(message) {
 
 function setRegisteredRole(member) {
   const role = bot.guilds.cache.first().roles.cache.find(e => e.name == "Registrado")
-  member.roles.add(role);
+  if (role) {
+    member.roles.add(role);
+  }
 }
 
 async function SetPlayerRoleByRanking(player, top1) {
@@ -58,13 +71,21 @@ async function getRoles() {
 }
 
 async function setRoles() {
-  await bot.guilds.cache.first().roles.fetch({ cache: true })
-  const roles = await getRoles();
-  if (!(roles.find(e => e.name == '5 - Diamante'))) {
-    helper.roles.map(role => createRole(role.name, role.color))
-  }
-  if (!(roles.find(e => e.name == 'Registrado'))) {
-    helper.specialRoles.map(role => createSpecialRole(role.name, role.permissions))
+  try {
+    await bot.guilds.cache.first().roles.fetch({ cache: true })
+    const roles = await getRoles();
+    
+    // Criar cargos especiais se não existirem
+    if (!(roles.find(e => e.name == 'Registrado'))) {
+      helper.specialRoles.forEach(role => createSpecialRole(role.name, role.permissions))
+    }
+    
+    // Criar cargos de ranking se não existirem
+    if (!(roles.find(e => e.name == '5 - Diamante'))) {
+      helper.roles.forEach(role => createRole(role.name, role.color))
+    }
+  } catch (error) {
+    console.error('Erro ao configurar cargos:', error);
   }
 }
 
@@ -98,10 +119,9 @@ function createRole(role, color) {
       name: role,
       color: color,
       hoist: true,
-      permissions: ['SEND_MESSAGES', 'VIEW_CHANNEL', 'CONNECT']
+      mentionable: true
     }
   })
-
 }
 
 async function getChannels() {
@@ -109,15 +129,31 @@ async function getChannels() {
 }
 
 async function setChannels() {
-  const channels = await getChannels();
-  if (!(channels.find(e => e.name == 'Aram'))) {
-    const aramHelper = helper.channels.find(e => e.name == 'Aram')
-    let aramChannel = await createChannel(aramHelper.name, aramHelper.options)
-    helper.channels.filter(e => e.name !== 'Aram')
-      .map(ch => {
-        ch.options.parent = aramChannel
-        createChannel(ch.name, ch.options)
-      })
+  try {
+    const guild = bot.guilds.cache.first();
+    if (!guild) return;
+
+    // Criar categoria Aram se não existir
+    let aramCategory = guild.channels.cache.find(c => c.name === 'Aram' && c.type === 'category');
+    if (!aramCategory) {
+      aramCategory = await guild.channels.create('Aram', { type: 'GUILD_CATEGORY' });
+    }
+
+    // Criar canais de voz se não existirem
+    const channels = ['Queue', 'Time 1', 'Time 2'];
+    for (const channelName of channels) {
+      const existingChannel = guild.channels.cache.find(c => c.name === channelName && c.type === 'GUILD_VOICE');
+      if (!existingChannel) {
+        const userLimit = channelName === 'Queue' ? 10 : 5;
+        await guild.channels.create(channelName, {
+          type: 'GUILD_VOICE',
+          parent: aramCategory.id,
+          userLimit: userLimit
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao configurar canais:', error);
   }
 }
 

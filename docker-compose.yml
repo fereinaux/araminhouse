@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  aramhouse:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aramhouse-bot
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      # Volume para persistir o banco de dados
+      - aramhouse_data:/app/dist
+      # Volume para logs (opcional)
+      - ./logs:/app/logs
+    networks:
+      - aramhouse_network
+    # Healthcheck para verificar se a aplicação está funcionando
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  aramhouse_data:
+    driver: local
+
+networks:
+  aramhouse_network:
+    driver: bridge

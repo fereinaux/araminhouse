@@ -1,0 +1,19 @@
+{
+  "discord": {
+    "token": "MTQxMTUyNjA3NTUwMjMwMTIwNA.GXHA5r.USHZ4Qb16e-j95-9OSVVhXO45iBKsPNpyDlP8U",
+    "clientId": "1411526075502301204",
+    "secretId": "je2TZlk9LEuiY6lQ1Yz5qZGdT"
+  },
+  "database": {
+    "path": "./aramhouse.db"
+  },
+  "application": {
+    "nodeEnv": "development",
+    "port": 3000
+  },
+  "mmr": {
+    "initial": 1000,
+    "max": 3000,
+    "min": 100
+  }
+}

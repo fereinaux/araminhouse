@@ -1,0 +1,57 @@
+---
+alwaysApply: true
+---
+
+# Pular Comandos de Build ou Dev
+
+Esta regra instrui o assistente a não executar comandos relacionados a build, desenvolvimento ou instalação de dependências, a menos que seja explicitamente solicitado pelo usuário.
+
+## Comandos que devem ser pulados:
+
+- `npm run build`, `npm run dev`, `npm start`
+- `yarn build`, `yarn dev`, `yarn start`
+- `npm install`, `yarn install`
+- `tsc` (TypeScript compiler)
+- `webpack`, `vite`, `parcel`
+- `nodemon`, `ts-node`
+- Qualquer comando que inicie servidores de desenvolvimento
+- Comandos de compilação ou transpilação
+
+## Exceções:
+
+- Apenas execute estes comandos se o usuário explicitamente solicitar
+- Se o usuário perguntar sobre como executar o projeto, explique os comandos em vez de executá-los
+- Para debugging ou análise de código, use ferramentas de leitura de arquivo em vez de execução
+
+## Comportamento esperado:
+
+- Foque em análise de código, leitura de arquivos e sugestões de edição
+- Evite executar comandos que possam alterar o estado do projeto
+- Sempre pergunte antes de executar comandos de build/dev se não estiver claro
+
+# Pular Comandos de Build ou Dev
+
+Esta regra instrui o assistente a não executar comandos relacionados a build, desenvolvimento ou instalação de dependências, a menos que seja explicitamente solicitado pelo usuário.
+
+## Comandos que devem ser pulados:
+
+- `npm run build`, `npm run dev`, `npm start`
+- `yarn build`, `yarn dev`, `yarn start`
+- `npm install`, `yarn install`
+- `tsc` (TypeScript compiler)
+- `webpack`, `vite`, `parcel`
+- `nodemon`, `ts-node`
+- Qualquer comando que inicie servidores de desenvolvimento
+- Comandos de compilação ou transpilação
+
+## Exceções:
+
+- Apenas execute estes comandos se o usuário explicitamente solicitar
+- Se o usuário perguntar sobre como executar o projeto, explique os comandos em vez de executá-los
+- Para debugging ou análise de código, use ferramentas de leitura de arquivo em vez de execução
+
+## Comportamento esperado:
+
+- Foque em análise de código, leitura de arquivos e sugestões de edição
+- Evite executar comandos que possam alterar o estado do projeto
+- Sempre pergunte antes de executar comandos de build/dev se não estiver claro

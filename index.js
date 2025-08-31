@@ -1,25 +1,26 @@
 const discordController = require('./controllers/DiscordController')
 const queueController = require('./controllers/QueueController')
 const app = require('./appHandler')
-const cron = require('node-cron');
+const { initDatabase } = require('./database')
 
+// Inicializa o banco de dados
+async function startApp() {
+  try {
+    await initDatabase();
+    console.log('✅ Banco de dados inicializado com sucesso!');
 
+    // Inicia o bot do Discord
+    discordController.bot.login(require('./connections.json').token);
 
-cron.schedule("*/10 * * * * *", function() {
-  queueController.handleCronCheck()
-});
+    console.log('🚀 Aplicação iniciada com sucesso!');
+  } catch (error) {
+    console.error('❌ Erro ao inicializar aplicação:', error);
+    process.exit(1);
+  }
+}
 
-cron.schedule("0 3 * * *", function(){
-  queueController.dayResume()
-})
-
-cron.schedule("0 3 * * 1", function(){
-  queueController.weekResume()
-})
-
-cron.schedule("0 3 1 * 0", function(){
-  queueController.monthResume()
-})
+// Inicia a aplicação
+startApp();
 
 
 
